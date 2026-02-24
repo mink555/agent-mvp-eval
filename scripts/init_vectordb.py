@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import get_settings
 from app.tool_search.embedder import get_tool_search
-from app.tools import get_all_tools
+from app.tools import get_tool_registry
 from app.rag.retriever import ingest_pdf, ingest_text_file
 
 # 파일명 패턴: B00329010_0_S.pdf
@@ -36,8 +36,10 @@ def main():
     print(f"ChromaDB persist dir: {s.chromadb_persist_dir}")
 
     print("\n[1/2] Tool 임베딩 색인 중...")
+    registry = get_tool_registry()
+    registry.load_from_modules()
     searcher = get_tool_search()
-    tools = get_all_tools()
+    tools = registry.get_all()
     searcher.index_tools(tools)
     print(f"  {len(tools)}개 tool 색인 완료")
 
