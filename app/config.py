@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
 
     # ── Search / RAG ──────────────────────────────────────
-    tool_search_top_k: int = Field(default=10, ge=1, le=100)
+    tool_search_top_k: int = Field(default=5, ge=1, le=100)
     rag_top_k: int = Field(default=5, ge=1, le=50)
     max_conversation_turns: int = Field(default=20, ge=1, le=100)
 
