@@ -1,3 +1,13 @@
+---
+title: Insurance Chatbot
+emoji: 🏥
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Insurance Chatbot — MCP + Intelligent Tool Routing
 
 > LangGraph ReAct + MCP + ChromaDB 기반 **보험 도메인 AI 챗봇**
