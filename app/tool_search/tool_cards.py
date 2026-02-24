@@ -873,10 +873,6 @@ def get_card(tool_name: str) -> ToolCard | None:
     return REGISTRY.get(tool_name)
 
 
-def all_cards() -> list[ToolCard]:
-    """등록된 모든 ToolCard를 반환한다."""
-    return list(REGISTRY.values())
-
 
 def missing_cards(tool_names: list[str]) -> list[str]:
     """카드가 없는 도구 이름 목록을 반환한다. 신규 tool 추가 시 경고용."""
