@@ -223,6 +223,17 @@
     }
     .pipeline-status .stage.done .label { color: var(--success); }
 
+    .pipeline-status .stage.skipped .icon {
+      background: var(--surface3);
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+    .pipeline-status .stage.skipped .label {
+      color: var(--text-muted);
+      opacity: 0.5;
+      text-decoration: line-through;
+    }
+
     @keyframes icon-pulse {
       0%, 100% { box-shadow: 0 0 4px rgba(108, 92, 231, 0.3); }
       50%      { box-shadow: 0 0 14px rgba(108, 92, 231, 0.8); }
@@ -238,6 +249,7 @@
       border-radius: 1px;
     }
     .pipeline-status .connector.done { background: var(--success); }
+    .pipeline-status .connector.skipped { background: var(--surface3); opacity: 0.5; }
 
     .tool-badge-bar {
       display: flex;
@@ -763,6 +775,8 @@
       let fullAnswer = '';
       let doneData = null;
       const activeBadges = {}; /* tool_name → badge element */
+      const startedStages = new Set();
+      const completedStages = new Set();
 
       try {
         const res = await fetch('/api/chat/stream', {
@@ -797,9 +811,11 @@
 
               switch (currentEvent) {
                 case 'node_start':
+                  startedStages.add(payload.node);
                   setStageActive(pipelineEl, payload.node);
                   break;
                 case 'node_end':
+                  completedStages.add(payload.node);
                   setStageComplete(pipelineEl, payload.node, payload.duration_ms);
                   break;
                 case 'tools_selected':
@@ -849,7 +865,13 @@
         }
 
         botEl.classList.remove('streaming-cursor');
-        STAGES.forEach(s => setStageComplete(pipelineEl, s.id));
+        STAGES.forEach(s => {
+          if (startedStages.has(s.id) && !completedStages.has(s.id)) {
+            setStageComplete(pipelineEl, s.id);
+          } else if (!startedStages.has(s.id)) {
+            setStageSkipped(pipelineEl, s.id);
+          }
+        });
 
         if (doneData) {
           if (doneData.answer && doneData.answer !== fullAnswer) {
@@ -869,7 +891,11 @@
             botEl.appendChild(metaDiv);
           }
 
-          if (allTools.length > 0) updateToolPanel(allTools);
+          if (allTools.length > 0) {
+            updateToolPanel(allTools);
+          } else {
+            updateToolPanel([]);
+          }
           renderTrace(doneData.trace || []);
         }
       } catch (e) {
@@ -938,6 +964,19 @@
 
       const conn = wrapper.querySelector(`[data-after="${stageId}"]`);
       if (conn) conn.classList.add('done');
+    }
+
+    function setStageSkipped(wrapper, stageId) {
+      const el = wrapper.querySelector(`[data-stage="${stageId}"]`);
+      if (!el || el.classList.contains('done')) return;
+      el.classList.remove('active');
+      el.classList.add('skipped');
+
+      const icon = el.querySelector('.icon');
+      icon.innerHTML = '—';
+
+      const conn = wrapper.querySelector(`[data-after="${stageId}"]`);
+      if (conn) conn.classList.add('skipped');
     }
 
     function showToolBadges(wrapper, tools, badgeMap) {
@@ -1013,6 +1052,14 @@
       return ic({c:'var(--text-dim)', p:'<circle cx="12" cy="12" r="10"/>'});
     }
 
+    const TRACE_NODE_LABELS = {
+      guard_input: '보호 필터 (입력)',
+      analyze: '질문 분석',
+      execute: '도구 실행',
+      generate: '답변 생성',
+      guard_output: '보호 필터 (출력)',
+    };
+
     function renderTrace(trace) {
       const el = document.getElementById('trace-items');
       if (!trace || !trace.length) {
@@ -1024,6 +1071,7 @@
         const item = document.createElement('div');
         item.className = 'trace-item';
         const dur = t.duration_ms != null ? `${Math.round(t.duration_ms)}ms` : '';
+        const displayName = TRACE_NODE_LABELS[t.node] || t.node;
         let detailStr = '';
         if (t.detail && typeof t.detail === 'object') {
           detailStr = Object.entries(t.detail)
@@ -1031,7 +1079,7 @@
             .join(' | ');
         }
         item.innerHTML = `
-          <span class="node-name">${t.node}</span>
+          <span class="node-name">${displayName}</span>
           <span class="duration">${dur}</span>
           ${detailStr ? `<div class="detail">${detailStr}</div>` : ''}
         `;
