@@ -476,7 +476,7 @@ python run.py
 
 ## 7. Tool Routing 성능 실험
 
-`scripts/eval_tool_recall.py`로 64개 테스트 쿼리에 대해 top-k별 성능을 측정했습니다.
+`scripts/eval_tool_recall.py`로 79개 테스트 쿼리(tool-call 64개 + no-call 15개)에 대해 top-k별 성능을 측정했습니다.
 
 ### 7-1. 실험 환경
 
@@ -484,24 +484,61 @@ python run.py
 |------|-----|
 | 임베딩 모델 | `intfloat/multilingual-e5-large` (1024차원) |
 | 인덱싱 방식 | Multi-vector (purpose + when_to_use 별도 문서) |
-| 테스트 쿼리 | 64개 (혼동 쌍 포함) |
+| 테스트 쿼리 | 79개 = tool-call 64개 (혼동 쌍 포함) + no-call 15개 |
 | 도구 수 | 54개 → 인덱싱 문서 ~370개 |
+| No-Call threshold | 0.86 (top-1 score가 이 미만이면 "도구 불필요"로 판정) |
 
-### 7-2. 결과
+### 7-2. k별 비교 결과
 
 | 지표 | k=1 | k=3 | k=5 | k=7 | k=10 |
 |------|-----|-----|-----|-----|------|
-| **Hit@1** | 98.4% (63/64) | 98.4% | 98.4% | 98.4% | 98.4% |
+| **Tool Acc (Hit@1)** | 98.4% | 98.4% | 98.4% | 98.4% | 98.4% |
 | **Recall@k** | 98.4% | **100%** | **100%** | **100%** | **100%** |
 | **MRR** | 0.9844 | 0.9922 | 0.9922 | 0.9922 | 0.9922 |
+| **No-Call Acc** | 73.3% | 73.3% | 73.3% | 73.3% | 73.3% |
+| **Overall Acc** | 93.7% | 93.7% | 93.7% | 93.7% | 93.7% |
 
-### 7-3. 분석
+> **지표 설명**
+> - **Tool Acc (Hit@1)**: 도구 호출 쿼리 중 top-1이 정답인 비율
+> - **Recall@k**: 도구 호출 쿼리 중 top-k 안에 정답이 있는 비율
+> - **No-Call Acc**: 도구 불필요 쿼리 중 top-1 score < threshold인 비율
+> - **Overall Acc**: (Tool Acc 정답 + No-Call 정답) / 전체 쿼리
+
+### 7-3. 점수 분포 분석
+
+```
+Tool-Call top-1 score : min=0.867  avg=0.922  max=0.947
+No-Call   top-1 score : min=0.831  avg=0.853  max=0.877
+분리 마진 (tool min - no-call max) = -0.010  ← 겹침 구간 존재
+```
+
+| threshold | No-Call Acc | 트레이드오프 |
+|-----------|------------|-------------|
+| 0.86 | **73.3%** (11/15) | 실용적 — tool-call 쿼리 영향 없음 |
+| 0.88 | **100%** (15/15) | 이상적이지만 tool min(0.867)과 겹쳐 false no-call 위험 |
+
+**핵심 인사이트:** No-Call 쿼리(일반 보험 지식, 대화형 발화)와 Tool-Call 쿼리의 임베딩 점수가 0.83~0.88 구간에서 **겹칩니다.** 이는 보험 도메인 특성상 자연스러운 현상입니다. "보험이란 무엇인가요?"도, "보험료 얼마야?"도 모두 보험 키워드를 포함하기 때문입니다.
+
+→ **임베딩 score만으로 No-Call을 완벽히 분리하기 어렵기 때문에**, 실제 시스템에서는 **LLM이 2차로 "도구를 호출할 필요 없다"는 판단**을 내립니다. ChromaDB는 후보를 좁히는 역할만 하고, 최종 호출 여부는 LLM이 결정하는 2단계 구조가 이 한계를 보완합니다.
+
+### 7-4. Tool-Call 세부 분석
 
 - **k=3부터 Recall 100%** — 64개 쿼리 전부 top-3 안에 정답 도구 포함
 - **Hit@1 = 98.4%** — 63/64 쿼리가 1순위 정답. 유일한 미탐은 "암 진단금이 얼마야?"에서 `coverage_detail` 대신 `benefit_amount_lookup`이 1위로 나온 것인데, 두 도구 모두 적절한 응답이 가능하므로 실질적 오류 아님
 - **MRR 0.99** — 정답 도구가 거의 항상 1~2순위에 위치
 
-### 7-4. Top-K 권장값
+### 7-5. No-Call 오판 사례 (threshold=0.86 기준)
+
+| # | 쿼리 | top-1 도구 | score | 분석 |
+|---|------|-----------|-------|------|
+| 1 | "보험 가입 시 주의사항이 뭐야?" | underwriting_waiting_periods | 0.864 | 보험 가입과 관련, 도구 호출도 합리적 |
+| 2 | "방금 말씀해주신 내용 요약해줘" | coverage_summary | 0.869 | "요약"이 coverage_summary와 매칭 |
+| 3 | "보험 들 때 뭘 확인해야 할까?" | rag_terms_query_engine | 0.877 | 약관 검색이 도움될 수 있음 |
+| 4 | "보험 설계사한테 뭘 물어봐야 해?" | product_search | 0.863 | 상품 검색도 유관 |
+
+> 4건 모두 "도구를 써도 틀리지 않는" 경계 사례입니다. 실제 운영에서는 LLM이 컨텍스트를 보고 도구 호출 여부를 최종 결정하므로, 이 수준의 오판은 허용 범위입니다.
+
+### 7-6. Top-K 권장값
 
 | # | 상황 | 권장 k | 이유 |
 |---|------|--------|------|
@@ -511,17 +548,23 @@ python run.py
 
 > 현재 설정은 `TOOL_SEARCH_TOP_K=10`이지만, 실험 결과 **k=5로 줄여도 성능 손실 없이 비용 절감** 가능합니다.
 
-### 7-5. 실험 실행 방법
+### 7-7. 실험 실행 방법
 
 ```bash
-# 기본 (top-10)
+# 기본 (top-10, 단일 k)
 python -m scripts.eval_tool_recall
 
-# top-k 변경 + 전체 결과 출력
-python -m scripts.eval_tool_recall --k 5 --verbose
+# k=1,3,5,7,10 비교표
+python -m scripts.eval_tool_recall --compare
+
+# 커스텀 k + threshold + 상세
+python -m scripts.eval_tool_recall --k 5 --threshold 0.88 --verbose
+
+# 비교할 k 값 직접 지정
+python -m scripts.eval_tool_recall --compare --ks 3 5 7 --threshold 0.88
 ```
 
-> 도구를 추가/변경한 후 반드시 실행해서 Recall이 유지되는지 확인하세요.
+> 도구를 추가/변경한 후 반드시 `--compare`로 실행하여 모든 지표가 유지되는지 확인하세요.
 
 ---
 
