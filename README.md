@@ -1,3 +1,13 @@
+---
+title: Insurance Chatbot
+emoji: 🏥
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # MCP(AI TMR Assistant) — Tool Routing 고도화
 
 > **Intelligent Tool Routing**으로 정확도를 개선하고, **Scalable Tool Architecture**로 운영 효율과 확장성을 동시에 확보함
