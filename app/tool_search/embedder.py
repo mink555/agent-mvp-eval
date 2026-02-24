@@ -92,6 +92,9 @@ class ToolEmbeddingSearch:
 
     def index_tools(self, tools: list[BaseTool] | tuple[BaseTool, ...]) -> None:
         """LangChain 도구들을 ChromaDB에 멀티-벡터 임베딩. 변경 시에만 재인덱싱."""
+        if not tools:
+            logger.warning("No tools to index, skipping")
+            return
         new_hash = _compute_tools_hash(tools)
 
         try:
