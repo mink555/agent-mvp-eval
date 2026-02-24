@@ -23,9 +23,10 @@ pinned: false
 | **핵심 구조** | 사용자 질문 → 가드레일 → ChromaDB로 54개→5개 축소 → LLM이 최종 선택 → 도구 실행 → 출력 검증 |
 | **서빙** | FastAPI (REST/SSE, :8080) + MCP Server (SSE/stdio, :8000) |
 | **Tool Routing 정확도** | Recall@5 = **100%**, Hit@1 = **98.4%**, MRR = **0.99** (64개 쿼리 기준) |
-| **새 도구 추가** | ToolCard 1개 등록 → 코드 변경 없이 자동 인덱싱·검색 대상 포함 |
+| **새 도구 추가** | ToolCard 1개 등록 → 자동 인덱싱. 런타임 핫리로드 지원 (서버 재시작 불필요) |
 | **LLM** | OpenRouter (기본: qwen/qwen3-14b) |
-| **임베딩** | `intfloat/multilingual-e5-large` (1024차원) |
+| **임베딩** | `intfloat/multilingual-e5-large` (1024차원) — 한국어 MTEB 1위급, 비대칭 검색 특화 |
+| **벡터 DB** | ChromaDB — 임베디드, pip 1줄, 메타데이터 필터링·영속성·CRUD 기본 지원 |
 
 ---
 
@@ -78,17 +79,21 @@ pinned: false
 
 ### 1-2. Scalable Tool Architecture — 쉽게 확장하기
 
-새 도구를 추가할 때 운영 부담이 없도록 자동화했습니다.
+새 도구를 추가할 때 운영 부담이 없도록 자동화했습니다. **두 가지 방식을 지원**합니다.
 
 ```
-① 도구 함수 작성  →  ② ToolCard 등록  →  ③ 서버 재시작
-                                            ↓
-                                   임베딩 자동 생성
-                                   Vector Index 자동 갱신
-                                   검색 대상에 즉시 포함
+[방법 A — 정적 등록]
+① 도구 함수 작성  →  ② ToolCard 등록  →  ③ 서버 재시작 → 자동 인덱싱
+
+[방법 B — 런타임 핫리로드 (서버 재시작 없음)]
+① 도구 함수 작성  →  ② API 호출 (POST /api/tools/reload-module/{module})
+                          ↓
+                ToolRegistry에 즉시 등록
+                ChromaDB 벡터 자동 인덱싱
+                다음 요청부터 즉시 사용 가능
 ```
 
-코드를 고칠 필요 없이 **ToolCard 하나만 등록하면** 기존 파이프라인에 녹아듭니다.  
+ToolRegistry가 도구 목록을 동적으로 관리하고, 변경 시 ChromaDB 재인덱싱을 자동 트리거합니다.  
 (상세 절차는 [6. 새 도구 등록 가이드](#6-새-도구-등록-가이드) 참조)
 
 ### 1-3. Validation Layer — 측정하고 비교하기
@@ -130,7 +135,53 @@ pinned: false
 - 비관련 도구가 제거되어 → **오호출 감소**
 - 새 도구를 추가해도 → 기존 도구 선택 정확도 **유지**
 
-### 2-3. 왜 Multi-Vector 인덱싱인가
+### 2-3. 왜 ChromaDB인가 — 벡터 DB 선택 근거
+
+벡터 DB 선택 시 FAISS, Milvus, ChromaDB를 비교했습니다.
+
+| 기준 | FAISS | Milvus | **ChromaDB** |
+|------|-------|--------|-------------|
+| 분류 | 라이브러리 (DB 아님) | 분산 벡터 DB | 임베디드 벡터 DB |
+| 메타데이터 필터링 | 미지원 (직접 구현) | 지원 | **지원** |
+| 영속성 | 미지원 (직접 구현) | 지원 | **지원 (로컬 폴더)** |
+| upsert / delete | 미지원 | 지원 | **지원** |
+| 인프라 | 없음 | Docker 3개 (etcd+MinIO+Milvus) | **pip 1줄** |
+| 실시간 upsert | 인덱스 rebuild 필요 | 지원 | **지원** |
+| 적합 규모 | 수억 벡터 | 수억~수십억 | **수천~수만** |
+
+**이 프로젝트의 벡터 규모:**
+
+| 컬렉션 | 데이터 | 벡터 수 |
+|--------|--------|---------|
+| `tool_embeddings` | 54개 도구 × 멀티벡터 | ~370개 |
+| `rag_documents` | PDF/TXT 청크 | ~1,400개 |
+| **합계** | | **~1,800개** |
+
+- **FAISS를 쓰지 않은 이유:** 도구 라우팅에는 `where={"type": "tool"}`로 메타데이터 필터링이 필수입니다. FAISS는 순수 벡터 연산 라이브러리라 메타데이터·영속성·CRUD를 전부 직접 구현해야 합니다. 가드레일(L2)처럼 46개 벡터를 단순 비교하는 곳에는 numpy를 쓰지만, 도구 라우팅은 메타데이터가 필요해서 FAISS 위에 미니 DB를 만드는 것보다 ChromaDB가 합리적입니다.
+- **Milvus를 쓰지 않은 이유:** 벡터 1,800개를 검색하는 데 etcd + MinIO + Milvus 컨테이너 3개를 띄울 이유가 없습니다. 분산 아키텍처는 수억 벡터 규모에서 의미가 있고, 이 규모에서는 오버엔지니어링입니다.
+- **ChromaDB를 선택한 이유:** `pip install chromadb` + `PersistentClient("./chroma_data")` 한 줄이면 메타데이터 필터링, 영속성, CRUD, 실시간 upsert가 전부 됩니다. 별도 서버 프로세스 없이 앱 프로세스 안에서 동작(in-process)하므로 배포가 단순합니다.
+
+### 2-4. 왜 multilingual-e5-large인가 — 임베딩 모델 선택 근거
+
+임베딩 모델은 Tool Routing 정확도에 직접 영향을 미치는 핵심 컴포넌트입니다.
+
+| 후보 | 차원 | 한국어 성능 | 비대칭 검색 | 비고 |
+|------|------|-----------|-----------|------|
+| `paraphrase-multilingual-MiniLM-L12-v2` | 384 | 중 | X | 경량, 범용 |
+| `intfloat/multilingual-e5-base` | 768 | 상 | O | 중간 크기 |
+| **`intfloat/multilingual-e5-large`** | **1024** | **최상** | **O** | **선택** |
+| OpenAI `text-embedding-3-large` | 3072 | 상 | O | API 종속, 비용 |
+
+**선택 이유:**
+
+1. **한국어 성능 최상위:** MTEB 다국어 벤치마크에서 한국어 Retrieval 태스크 1위급. 보험 도메인은 한국어 전문 용어("갱신형", "면책기간", "납입면제")가 핵심이라 한국어 품질이 결정적입니다.
+2. **비대칭 검색(Asymmetric Retrieval) 네이티브 지원:** `"query: {질문}"` / `"passage: {문서}"` 프리픽스로 질문-문서 간 비대칭 인코딩을 합니다. 도구 라우팅은 본질적으로 비대칭(짧은 사용자 질문 → 긴 도구 설명)이라 이 구조가 정확도를 높입니다.
+3. **외부 API 미의존:** SentenceTransformers로 로컬 추론. OpenAI 임베딩 API에 의존하면 네트워크 지연 + 비용 + API 장애 리스크가 추가됩니다. 도구 라우팅은 매 요청마다 실행되므로 로컬 추론이 유리합니다.
+4. **실측 결과:** 이 모델로 Recall@5 = 100%, Hit@1 = 98.4%, MRR = 0.99를 달성했습니다 ([7. Tool Routing 성능 실험](#7-tool-routing-성능-실험) 참조).
+
+> **트레이드오프:** 모델 크기가 ~2.2GB로 e5-base(~1.1GB) 대비 2배입니다. 첫 로드에 ~5초가 걸리지만, 싱글톤으로 메모리에 상주하므로 이후 추론은 ~10ms/쿼리입니다. 도구 라우팅 정확도가 챗봇 전체 품질을 좌우하므로, 로드 시간보다 정확도를 우선했습니다.
+
+### 2-5. 왜 Multi-Vector 인덱싱인가
 
 각 도구를 **단일 벡터**로 인덱싱하면, 여러 사용 예시의 평균이 되어 벡터가 희석됩니다.
 
@@ -375,11 +426,13 @@ START → [input_guardrail] ──(차단)──→ END
 | # | 프레임워크 | 역할 |
 |---|-----------|------|
 | 1 | **LangGraph** | 5개 노드 연결, 조건 분기, 대화 상태 저장, 루프 제어 |
-| 2 | **LangChain** | `@tool` 54개 도구 정의, `ChatOpenAI` LLM, `bind_tools()`, `ToolNode` |
+| 2 | **LangChain** | `@tool` 54개 도구 정의, `ChatOpenAI` LLM, `bind_tools()` |
 | 3 | **FastAPI / FastMCP** | HTTP/MCP 수신, 결과 반환 |
-| 4 | **프로젝트 고유** | 가드레일, ChromaDB 도구 라우팅, 쿼리 재작성, ToolCard, RAG |
+| 4 | **프로젝트 고유** | 가드레일, ChromaDB 도구 라우팅, 쿼리 재작성, ToolCard, ToolRegistry, 동적 도구 디스패치, RAG |
 
-> **한 줄 요약:** LangChain이 **부품**(도구·LLM)을 만들고, LangGraph가 **조립·실행**(그래프·상태·분기)하며, 프로젝트 고유 코드가 **도메인 최적화**(가드레일·라우팅·정제)를 담당합니다.
+> **한 줄 요약:** LangChain이 **부품**(도구·LLM)을 만들고, LangGraph가 **조립·실행**(그래프·상태·분기)하며, 프로젝트 고유 코드가 **도메인 최적화**(가드레일·라우팅·핫리로드)를 담당합니다.
+
+> **동적 디스패치 노드:** LangGraph 기본 제공 `ToolNode`는 생성 시점에 도구 목록을 고정합니다. 런타임 핫리로드를 위해 매 호출 시 `ToolRegistry`에서 최신 도구를 조회하는 커스텀 디스패치 노드(`_dynamic_tool_node`)로 교체했습니다.
 
 ---
 
@@ -612,21 +665,77 @@ python -m scripts.eval_tool_recall --verbose
 
 Recall@k가 떨어졌다면 ToolCard의 `when_to_use`를 보강하거나, 기존 도구의 `when_not_to_use`에 새 도구를 명시하세요.
 
-### 6-5. Step 4 — 서버 재시작
+### 6-5. Step 4a — 서버 재시작 (정적 등록)
 
 서버를 재시작하면 `lifespan` 이벤트에서 자동으로:
-1. `get_all_tools()`가 새 도구를 수집
+1. `ToolRegistry.load_from_modules()`가 새 도구를 수집
 2. `index_tools()`가 ToolCard 변경을 감지하고 ChromaDB 재인덱싱
 3. 새 도구가 검색 대상에 포함됨
 
 ```bash
 python run.py
+# INFO: ToolRegistry loaded 55 tools
 # INFO: Indexed 55 tools → 380 documents
 ```
 
-### 6-6. 체크리스트
+### 6-6. Step 4b — 런타임 핫리로드 (서버 재시작 없음)
+
+서버가 실행 중인 상태에서 도구를 추가·제거할 수 있습니다.
+
+#### 모듈 단위 등록
+
+```bash
+# product 모듈의 도구를 런타임에 (재)등록
+curl -X POST http://localhost:8080/api/tools/reload-module/product
+```
+
+```json
+{
+  "status": "ok",
+  "module": "product",
+  "registered": ["product_search"],
+  "tools_count": 54,
+  "registry_version": 3
+}
+```
+
+#### 도구 단위 삭제
+
+```bash
+# 특정 도구를 런타임에 해제
+curl -X DELETE http://localhost:8080/api/tools/product_search
+```
+
+```json
+{
+  "status": "ok",
+  "message": "Tool 'product_search' unregistered",
+  "tools_count": 53,
+  "registry_version": 2
+}
+```
+
+#### 핫리로드 동작 원리
 
 ```
+API 호출 (POST/DELETE)
+    │
+    ├─ ToolRegistry 갱신 ← 스레드 안전 (threading.Lock)
+    │
+    ├─ on_change 콜백 트리거
+    │     └─ ChromaDB 벡터 자동 재인덱싱
+    │
+    └─ 다음 요청부터 즉시 반영
+         ├─ agent 노드: registry.get_all()로 최신 도구 바인딩
+         └─ tools 노드: registry.get_by_name()으로 동적 디스패치
+```
+
+> **그래프 재컴파일 불필요:** LangGraph의 5노드 그래프 구조(토폴로지)는 변하지 않습니다. `agent`와 `tools` 노드가 내부적으로 `ToolRegistry`를 매번 참조하므로, 도구 목록만 바뀌면 됩니다.
+
+### 6-7. 체크리스트
+
+```
+[정적 등록 — 서버 재시작]
 □ @tool 함수 작성 완료
 □ 모듈 TOOLS 리스트에 추가
 □ (새 모듈이면) __init__.py의 _TOOL_MODULES에 추가
@@ -636,6 +745,13 @@ python run.py
 □ python -m scripts.eval_tool_recall --verbose 실행
 □ Recall@k 유지 확인
 □ 서버 재시작 후 /api/tools에서 새 도구 확인
+
+[런타임 핫리로드 — 서버 유지]
+□ @tool 함수 작성 + 모듈 TOOLS 리스트에 추가
+□ POST /api/tools/reload-module/{module} 호출
+□ GET /api/health로 도구 수·registry_version 확인
+□ GET /api/tools에서 새 도구 존재 확인
+□ 채팅으로 새 도구 호출 테스트
 ```
 
 ---
@@ -752,13 +868,13 @@ mcp_abtest_v1/
 │   │
 │   ├── graph/                      # ── LangGraph 계층 ──
 │   │   ├── state.py                #   AgentState 정의 (trace·conversation_started)
-│   │   ├── nodes.py                #   agent 노드 (ChromaDB 라우팅 + LLM)
+│   │   ├── nodes.py                #   agent 노드 (ToolRegistry + ChromaDB 라우팅 + LLM)
 │   │   ├── query_rewrite.py        #   쿼리 재작성 노드 (15자 미만)
-│   │   ├── builder.py              #   5노드 그래프 + AsyncSqliteSaver
+│   │   ├── builder.py              #   5노드 그래프 + 동적 도구 디스패치 + AsyncSqliteSaver
 │   │   └── guardrails.py           #   입력(L1·L2) / 출력 가드레일
 │   │
 │   ├── tools/                      # ── 도구 계층 (54개) ──
-│   │   ├── __init__.py             #   get_all_tools() + when_not_to_use 자동 주입
+│   │   ├── __init__.py             #   ToolRegistry (동적 핫리로드) + when_not_to_use 자동 주입
 │   │   ├── data.py                 #   시뮬레이션 데이터 SSOT + 시스템 프롬프트
 │   │   ├── db_setup.py             #   SQLite 초기화 + threading.Lock
 │   │   ├── product.py              #   상품 조회/검색/비교 (10개)
@@ -807,9 +923,11 @@ mcp_abtest_v1/
 |---|--------|------|------|
 | 1 | `POST` | `/api/chat` | 동기 응답 — 전체 답변 한 번에 |
 | 2 | `POST` | `/api/chat/stream` | SSE 스트리밍 — 노드 진행 + 토큰 실시간 |
-| 3 | `GET` | `/api/health` | 헬스체크 (도구 수, ChromaDB 상태) |
-| 4 | `GET` | `/api/tools` | 도구 카탈로그 |
-| 5 | `GET` | `/` | 웹 Chat UI |
+| 3 | `GET` | `/api/health` | 헬스체크 (도구 수, registry_version, ChromaDB 상태) |
+| 4 | `GET` | `/api/tools` | 도구 카탈로그 (count, registry_version 포함) |
+| 5 | `POST` | `/api/tools/reload-module/{module}` | 도구 모듈 런타임 재등록 (핫리로드) |
+| 6 | `DELETE` | `/api/tools/{tool_name}` | 도구 런타임 해제 + ChromaDB 벡터 삭제 |
+| 7 | `GET` | `/` | 웹 Chat UI |
 
 ### 9-2. 요청/응답 예시
 
@@ -966,16 +1084,16 @@ PDF 대량 추가
 
 ## 12. 기술 스택
 
-| # | 카테고리 | 기술 | 역할 |
-|---|----------|------|------|
-| 1 | LLM 오케스트레이션 | LangGraph | ReAct 패턴 그래프 실행, 멀티턴 대화 |
-| 2 | LLM 프로바이더 | OpenRouter (ChatOpenAI) | qwen/qwen3-14b |
-| 3 | 벡터 DB | ChromaDB | 도구 임베딩 검색 + RAG 문서 검색 |
-| 4 | 임베딩 | SentenceTransformers | `intfloat/multilingual-e5-large` (1024차원) |
-| 5 | API 서버 | FastAPI | REST + SSE 스트리밍 |
-| 6 | MCP 서버 | FastMCP | MCP 프로토콜 구현 |
-| 7 | 체크포인터 | langgraph-checkpoint-sqlite | 대화 상태 영구 저장 (AsyncSqliteSaver) |
-| 8 | PDF 파싱 | PyMuPDF (fitz) | 약관/요약서 텍스트 추출 |
-| 9 | 고객 DB | SQLite3 | 고객/계약 시뮬레이션 |
-| 10 | 재시도 | tenacity | LLM/DB exponential backoff |
-| 11 | 검증 | Pydantic v2 | 요청/응답 모델, 설정 관리 |
+| # | 카테고리 | 기술 | 역할 | 선택 근거 |
+|---|----------|------|------|-----------|
+| 1 | LLM 오케스트레이션 | LangGraph | ReAct 패턴 그래프 실행, 멀티턴 대화 | 조건부 분기·루프를 선언적으로 정의, 체크포인터 내장 |
+| 2 | LLM 프로바이더 | OpenRouter (ChatOpenAI) | qwen/qwen3-14b | 다중 모델 라우팅, 단일 API key로 모델 교체 가능 |
+| 3 | 벡터 DB | ChromaDB | 도구 임베딩 검색 + RAG 문서 검색 | pip 1줄 설치, 메타데이터 필터링·영속성·CRUD 기본 지원, ~1,800 벡터 규모에 최적 ([상세](#2-3-왜-chromadb인가--벡터-db-선택-근거)) |
+| 4 | 임베딩 | SentenceTransformers | `multilingual-e5-large` (1024차원) | 한국어 MTEB 최상위, 비대칭 검색 네이티브, 로컬 추론으로 API 비의존 ([상세](#2-4-왜-multilingual-e5-large인가--임베딩-모델-선택-근거)) |
+| 5 | API 서버 | FastAPI | REST + SSE 스트리밍 | async 네이티브, 자동 OpenAPI 문서, Pydantic 통합 |
+| 6 | MCP 서버 | FastMCP | MCP 프로토콜 구현 | Claude Desktop·Cursor 등 AI 클라이언트 직접 연동 |
+| 7 | 체크포인터 | langgraph-checkpoint-sqlite | 대화 상태 영구 저장 | 외부 Redis/DB 없이 로컬 SQLite로 멀티턴 유지 |
+| 8 | PDF 파싱 | PyMuPDF (fitz) | 약관/요약서 텍스트 추출 | 순수 C 기반으로 빠름, 한글 PDF 안정적 |
+| 9 | 고객 DB | SQLite3 | 고객/계약 시뮬레이션 | 별도 서버 불필요, threading.Lock으로 동시성 관리 |
+| 10 | 재시도 | tenacity | LLM/DB exponential backoff | 데코레이터 한 줄로 재시도 정책 선언 |
+| 11 | 검증 | Pydantic v2 | 요청/응답 모델, 설정 관리 | FastAPI 네이티브 통합, .env 자동 로드 |
