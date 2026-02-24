@@ -526,45 +526,38 @@
       </div>
 
       <div class="examples-section">
-        <div class="examples-header">TMR 실전 질문 예시</div>
+        <div class="examples-header">TMR 실전 상담 시나리오</div>
         <div class="example-groups">
           <div class="example-group">
-            <div class="group-label" style="color:var(--danger)">인수심사</div>
+            <div class="group-label" style="color:var(--accent-light)">📞 암보험 상담 (멀티턴)</div>
             <div class="group-items">
-              <button class="example-btn" onclick="askExample(this)">고혈압 약 복용 중인 55세 남성, 간편심사 암보험 가입 가능?</button>
-              <button class="example-btn" onclick="askExample(this)">당뇨+고혈압 동시 보유 고객, 간편심사 통과 기준 알려줘</button>
-              <button class="example-btn" onclick="askExample(this)">3년 전 디스크 수술, 치아보험 가입하면 부담보 조건은?</button>
+              <button class="example-btn" onclick="askSequence(['고객님이 암보험 알아보신다는데 우리 상품 뭐 있어?', '50세 남성이면 보험료 얼마쯤 나와?', '고혈압 약 드시고 계신데 가입 가능해?'])">고객이 암보험 문의 → 보험료 → 고혈압 고지</button>
             </div>
           </div>
           <div class="example-group">
-            <div class="group-label" style="color:var(--info)">상품/보험료</div>
+            <div class="group-label" style="color:var(--info)">📞 치아보험 상담 (멀티턴)</div>
             <div class="group-items">
-              <button class="example-btn" onclick="askExample(this)">간편심사 암보험 상품 목록 알려줘</button>
-              <button class="example-btn" onclick="askExample(this)">B00197011 보장 내용 요약해줘</button>
-              <button class="example-btn" onclick="askExample(this)">45세 여성 치아보험 월 보험료 얼마야?</button>
+              <button class="example-btn" onclick="askSequence(['치아보험 추천해줄 수 있어?', '보장 내용이 어떻게 돼?', '40세 여성이면 한 달에 얼마야?'])">치아보험 추천 → 보장 확인 → 보험료 확인</button>
             </div>
           </div>
           <div class="example-group">
-            <div class="group-label" style="color:var(--warning)">직업/특이 조건</div>
+            <div class="group-label" style="color:var(--danger)">📞 병력 고객 심사 (멀티턴)</div>
             <div class="group-items">
-              <button class="example-btn" onclick="askExample(this)">배달기사인데 상해보험 가입 시 직업 제한 있어?</button>
-              <button class="example-btn" onclick="askExample(this)">65세 고객 건강보험 최대 가입금액 얼마까지?</button>
-              <button class="example-btn" onclick="askExample(this)">암보험 실효됐는데 부활 심사 시 면책기간 다시 적용?</button>
+              <button class="example-btn" onclick="askSequence(['당뇨 있는 고객인데 가입할 수 있는 보험 있어?', '간편심사 상품으로 알아봐줘', '면책기간이 어떻게 되는지도 확인해줘'])">당뇨 고객 가입 → 간편심사 상품 → 면책기간</button>
             </div>
           </div>
           <div class="example-group">
-            <div class="group-label" style="color:var(--success)">보장/면책 상세</div>
+            <div class="group-label" style="color:var(--warning)">📞 기존 고객 문의 (멀티턴)</div>
             <div class="group-items">
-              <button class="example-btn" onclick="askExample(this)">치아보험 보장 개시 1년 내 충치 치료 받으면 얼마 나와?</button>
-              <button class="example-btn" onclick="askExample(this)">재해 장해 특약 장해율별 지급 기준 알려줘</button>
-              <button class="example-btn" onclick="askExample(this)">암 진단비 대기기간 90일 지나야 보장되나?</button>
+              <button class="example-btn" onclick="askSequence(['김민수 고객님 계약 현황 좀 확인해줘', '이 고객님 암보험 중복 가입 가능한지 봐줘', '보험금 청구는 어떻게 하면 돼?'])">고객 조회 → 중복 확인 → 청구 안내</button>
             </div>
           </div>
           <div class="example-group">
-            <div class="group-label" style="color:var(--accent-light)">멀티턴 테스트</div>
+            <div class="group-label" style="color:var(--success)">💬 단건 질문</div>
             <div class="group-items">
-              <button class="example-btn" onclick="askSequence(['치아보험 상품 알려줘', '보험료는?', '30대 여성이면?'])">① 치아보험 → 보험료? → 30대 여성이면?</button>
-              <button class="example-btn" onclick="askSequence(['간편심사 암보험 있어?', '55세 남성 가입 가능해?', '고혈압 있으면?'])">② 암보험 → 가입 가능? → 고혈압 있으면?</button>
+              <button class="example-btn" onclick="askExample(this)">소방관 고객인데 직업 위험등급 어떻게 돼?</button>
+              <button class="example-btn" onclick="askExample(this)">해약환급금 안내 시 고객한테 꼭 말해야 하는 거 뭐야?</button>
+              <button class="example-btn" onclick="askExample(this)">약관에서 암 정의가 어떻게 나와 있어?</button>
             </div>
           </div>
         </div>
