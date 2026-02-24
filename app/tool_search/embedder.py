@@ -141,22 +141,6 @@ class ToolEmbeddingSearch:
             len(tools), len(ids), new_hash,
         )
 
-    def index_single_tool(self, tool: BaseTool) -> None:
-        """단일 도구를 ChromaDB에 증분 인덱싱. 런타임 도구 등록 시 호출."""
-        ids, docs, metas = [], [], []
-        for doc_id, text in _tool_documents(tool):
-            ids.append(doc_id)
-            docs.append(text)
-            metas.append({
-                "tool_name": tool.name,
-                "type": "tool",
-                "has_card": str(get_card(tool.name) is not None),
-            })
-        self._collection.upsert(ids=ids, documents=docs, metadatas=metas)
-        logger.info(
-            "Incremental index: tool '%s' → %d documents", tool.name, len(ids),
-        )
-
     def remove_tool(self, tool_name: str) -> None:
         """단일 도구의 벡터를 ChromaDB에서 제거. 런타임 도구 해제 시 호출."""
         existing = self._collection.get(include=[])
