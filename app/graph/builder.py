@@ -1,4 +1,4 @@
-"""LangGraph 그래프 빌더 — ReAct + 가드레일.
+"""LangGraph 그래프 빌더 — ReAct + 가드레일 + 동적 도구 디스패치.
 
   START
     │
@@ -25,14 +25,16 @@
            END
 
 노드 5개, 조건부 엣지 3개, 무조건 엣지 3개.
+tools 노드는 DynamicToolNode로, 매 호출 시 ToolRegistry에서 최신 도구를 조회한다.
 """
 
 from __future__ import annotations
 
 import logging
 
+from langchain_core.messages import ToolMessage
 from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.prebuilt import tools_condition
 
 from app.graph.state import AgentState
 from app.graph.nodes import agent
@@ -41,7 +43,7 @@ from app.graph.guardrails import (
     route_after_input_guard, route_after_output_guard,
 )
 from app.graph.query_rewrite import query_rewriter
-from app.tools import get_all_tools
+from app.tools import get_tool_registry
 
 logger = logging.getLogger("insurance.graph.builder")
 
@@ -107,16 +109,54 @@ async def close_checkpointer() -> None:
 
 # ── Graph ──────────────────────────────────────────────────────────────────────
 
-def build_graph() -> StateGraph:
-    tool_node = ToolNode(get_all_tools())
+def _dynamic_tool_node(state: AgentState) -> dict:
+    """동적 도구 디스패치 노드 — 매 호출 시 ToolRegistry에서 최신 도구를 조회.
 
+    LangGraph prebuilt ToolNode는 __init__ 시점에 도구를 고정하므로,
+    런타임 도구 추가/제거를 지원하기 위해 직접 구현한다.
+    """
+    registry = get_tool_registry()
+    messages = state["messages"]
+
+    last = messages[-1]
+    tool_calls = getattr(last, "tool_calls", None) or []
+    if not tool_calls:
+        return {"messages": []}
+
+    results: list[ToolMessage] = []
+    for tc in tool_calls:
+        tool = registry.get_by_name(tc["name"])
+        if tool is None:
+            results.append(ToolMessage(
+                content=f"Error: tool '{tc['name']}' not found in registry",
+                tool_call_id=tc["id"],
+                name=tc["name"],
+            ))
+            continue
+        try:
+            output = tool.invoke(tc["args"])
+            results.append(ToolMessage(
+                content=str(output),
+                tool_call_id=tc["id"],
+                name=tc["name"],
+            ))
+        except Exception as e:
+            results.append(ToolMessage(
+                content=f"Error executing tool '{tc['name']}': {e}",
+                tool_call_id=tc["id"],
+                name=tc["name"],
+            ))
+    return {"messages": results}
+
+
+def build_graph() -> StateGraph:
     graph = StateGraph(AgentState)
 
     # ── 노드 등록 (5개) ──
     graph.add_node("input_guardrail", input_guardrail)
     graph.add_node("query_rewriter", query_rewriter)
     graph.add_node("agent", agent)
-    graph.add_node("tools", tool_node)
+    graph.add_node("tools", _dynamic_tool_node)
     graph.add_node("output_guardrail", output_guardrail)
 
     # ── 엣지 배선 ──

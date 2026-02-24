@@ -102,8 +102,6 @@ class ToolEmbeddingSearch:
         except Exception:
             pass
 
-        # 기존 tool 문서(구버전 포함) 전부 삭제 후 재삽입
-        # prefix 'tool_' 로 시작하는 ID 모두 제거 (use_N, tags 서브문서 포함)
         existing = self._collection.get(include=[])
         existing_ids = set(existing["ids"]) if existing["ids"] else set()
         old_tool_ids = {i for i in existing_ids if i.startswith("tool_")}
@@ -111,7 +109,6 @@ class ToolEmbeddingSearch:
             self._collection.delete(ids=list(old_tool_ids))
             logger.info("Deleted %d old tool documents", len(old_tool_ids))
 
-        # 카드 없는 tool 경고
         no_card = missing_cards([t.name for t in tools])
         if no_card:
             logger.warning(
@@ -140,6 +137,33 @@ class ToolEmbeddingSearch:
             "Indexed %d tools → %d documents (v=%s)",
             len(tools), len(ids), new_hash,
         )
+
+    def index_single_tool(self, tool: BaseTool) -> None:
+        """단일 도구를 ChromaDB에 증분 인덱싱. 런타임 도구 등록 시 호출."""
+        ids, docs, metas = [], [], []
+        for doc_id, text in _tool_documents(tool):
+            ids.append(doc_id)
+            docs.append(text)
+            metas.append({
+                "tool_name": tool.name,
+                "type": "tool",
+                "has_card": str(get_card(tool.name) is not None),
+            })
+        self._collection.upsert(ids=ids, documents=docs, metadatas=metas)
+        logger.info(
+            "Incremental index: tool '%s' → %d documents", tool.name, len(ids),
+        )
+
+    def remove_tool(self, tool_name: str) -> None:
+        """단일 도구의 벡터를 ChromaDB에서 제거. 런타임 도구 해제 시 호출."""
+        existing = self._collection.get(include=[])
+        to_delete = [
+            i for i in (existing["ids"] or [])
+            if i == f"tool_{tool_name}" or i.startswith(f"tool_{tool_name}__")
+        ]
+        if to_delete:
+            self._collection.delete(ids=to_delete)
+            logger.info("Removed %d documents for tool '%s'", len(to_delete), tool_name)
 
     @db_retry
     def search(self, query: str, top_k: int | None = None) -> list[ToolCandidate]:

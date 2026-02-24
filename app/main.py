@@ -16,7 +16,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
@@ -25,7 +25,7 @@ from app.config import get_settings
 from app.models import ChatRequest, ChatResponse
 from app.graph.builder import get_graph, init_checkpointer, close_checkpointer, RECURSION_LIMIT
 from app.graph.state import build_graph_input, extract_tools_used
-from app.tools import get_all_tools
+from app.tools import get_tool_registry
 
 logger = logging.getLogger("insurance.main")
 
@@ -45,6 +45,17 @@ def _node_to_stage(name: str, agent_call_count: int) -> str:
     return _STAGE_MAP.get(name, name)
 
 
+def _on_registry_change(registry) -> None:
+    """ToolRegistry 변경 콜백 — ChromaDB 도구 인덱스를 전체 재동기화."""
+    try:
+        from app.tool_search.embedder import get_tool_search
+        searcher = get_tool_search()
+        searcher.index_tools(registry.get_all())
+        logger.info("ChromaDB re-indexed after registry change (v=%d)", registry.version)
+    except Exception as e:
+        logger.warning("ChromaDB re-index failed: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     s = get_settings()
@@ -53,18 +64,21 @@ async def lifespan(app: FastAPI):
     # 1. Checkpointer 비동기 초기화 (AsyncSqliteSaver) — graph 컴파일 전에 실행
     await init_checkpointer()
 
-    tools = get_all_tools()
-    logger.info("Loaded %d LangChain tools", len(tools))
+    # 2. ToolRegistry 초기화 — 모듈에서 도구 수집 + 변경 콜백 등록
+    registry = get_tool_registry()
+    registry.load_from_modules()
+    registry.on_change(_on_registry_change)
+    logger.info("ToolRegistry loaded %d tools", len(registry))
 
-    # 2. 그래프 미리 컴파일 (checkpointer 준비 완료 후)
+    # 3. 그래프 미리 컴파일 (checkpointer 준비 완료 후)
     get_graph()
     logger.info("LangGraph compiled")
 
-    # 3. Tool embeddings 인덱싱
+    # 4. Tool embeddings 초기 인덱싱
     try:
         from app.tool_search.embedder import get_tool_search
         searcher = get_tool_search()
-        searcher.index_tools(tools)
+        searcher.index_tools(registry.get_all())
         logger.info("Tool embeddings indexed in ChromaDB")
     except Exception as e:
         logger.warning("ChromaDB tool indexing skipped: %s", e)
@@ -254,8 +268,8 @@ async def chat_stream(req: ChatRequest):
 
 @app.get("/api/health")
 async def health():
-    tools = get_all_tools()
-    checks: dict = {"tools": len(tools)}
+    registry = get_tool_registry()
+    checks: dict = {"tools": len(registry), "registry_version": registry.version}
 
     try:
         from app.tool_search.embedder import get_tool_search
@@ -269,15 +283,18 @@ async def health():
     except Exception:
         checks["chromadb_docs"] = "unavailable"
 
-    all_ok = all(isinstance(v, int) for v in checks.values())
+    all_ok = all(isinstance(v, (int, str)) and v != "unavailable" for v in checks.values())
     return {"status": "ok" if all_ok else "degraded", **checks}
 
 
 @app.get("/api/tools")
 async def list_tools():
     """도구 카탈로그 — 프론트엔드가 동적으로 표시명을 가져감."""
-    tools = get_all_tools()
+    registry = get_tool_registry()
+    tools = registry.get_all()
     return {
+        "count": len(tools),
+        "registry_version": registry.version,
         "tools": [
             {
                 "name": t.name,
@@ -289,6 +306,60 @@ async def list_tools():
             for t in tools
         ],
     }
+
+
+# ── 도구 핫리로드 API ─────────────────────────────────────────────────────────
+
+@app.delete("/api/tools/{tool_name}")
+async def unregister_tool(tool_name: str):
+    """런타임에 도구를 해제한다. ChromaDB 벡터도 자동 삭제."""
+    registry = get_tool_registry()
+    if not registry.get_by_name(tool_name):
+        raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
+
+    try:
+        from app.tool_search.embedder import get_tool_search
+        get_tool_search().remove_tool(tool_name)
+    except Exception as e:
+        logger.warning("ChromaDB removal failed for '%s': %s", tool_name, e)
+
+    registry.unregister(tool_name)
+    return {
+        "status": "ok",
+        "message": f"Tool '{tool_name}' unregistered",
+        "tools_count": len(registry),
+        "registry_version": registry.version,
+    }
+
+
+@app.post("/api/tools/reload-module/{module_name}")
+async def reload_module_tools(module_name: str):
+    """특정 도구 모듈의 도구들을 런타임에 재등록한다. 서버 재시작 없이 도구 복원/추가."""
+    import importlib
+
+    registry = get_tool_registry()
+    try:
+        mod = importlib.import_module(f"app.tools.{module_name}")
+        mod = importlib.reload(mod)
+        tools_in_mod = getattr(mod, "TOOLS", [])
+        if not tools_in_mod:
+            raise HTTPException(status_code=404, detail=f"No TOOLS in module 'app.tools.{module_name}'")
+
+        registered = []
+        for t in tools_in_mod:
+            if not registry.get_by_name(t.name):
+                registry.register(t)
+                registered.append(t.name)
+
+        return {
+            "status": "ok",
+            "module": module_name,
+            "registered": registered,
+            "tools_count": len(registry),
+            "registry_version": registry.version,
+        }
+    except ImportError:
+        raise HTTPException(status_code=404, detail=f"Module 'app.tools.{module_name}' not found")
 
 
 # ── Debug (개발 환경 전용) ────────────────────────────────────────────────────

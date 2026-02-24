@@ -1,9 +1,9 @@
-"""LangGraph 노드 — 정석 ReAct (Agent + ToolNode).
+"""LangGraph 노드 — ReAct Agent (동적 도구 레지스트리 연동).
 
 Node:
   agent — LLM 호출, 다음 행동 결정 (tool_calls / 최종 답변)
 
-Tool Node는 langgraph.prebuilt.ToolNode를 직접 사용.
+Tool Node는 builder.py의 _dynamic_tool_node가 ToolRegistry에서 실시간 조회.
 분기 조건은 langgraph.prebuilt.tools_condition을 사용.
 """
 
@@ -18,7 +18,7 @@ from app.graph.state import AgentState, extract_last_human_query
 from app.llm import get_llm
 from app.retry import llm_retry
 from app.tool_search.embedder import get_tool_search
-from app.tools import get_all_tools
+from app.tools import get_tool_registry
 from app.tools.data import SYSTEM_PROMPTS
 
 logger = logging.getLogger("insurance.graph.nodes")
@@ -127,12 +127,13 @@ def _invoke_llm(llm, messages):
 def agent(state: AgentState) -> dict:
     """Agent 노드 — LLM이 다음 행동을 자율 결정한다.
 
-    도구 50+개 중 ChromaDB로 관련 도구를 필터링한 뒤 LLM에 바인딩.
-    RAG도 rag_terms_query_engine / rag_product_info_query_engine 도구를 통해 호출된다.
+    ToolRegistry에서 최신 도구 목록을 가져온 뒤
+    ChromaDB로 관련 도구를 필터링하고 LLM에 바인딩.
     """
     ts = time.time()
     llm = get_llm()
-    all_tools = get_all_tools()
+    registry = get_tool_registry()
+    all_tools = registry.get_all()
     relevant_tools = _select_relevant_tools(state, all_tools)
     llm_with_tools = llm.bind_tools(relevant_tools)
 
@@ -166,6 +167,7 @@ def _select_relevant_tools(state: AgentState, all_tools: tuple) -> list:
 
     query_rewriter가 재작성한 쿼리(rewritten_query)를 우선 사용한다.
     원본 쿼리가 단문/후속 질문일 때 ChromaDB 검색 정확도를 높인다.
+    ToolRegistry에서 받은 최신 도구 목록을 기준으로 필터링한다.
     """
     try:
         query = state.get("rewritten_query") or extract_last_human_query(state["messages"])
