@@ -8,7 +8,7 @@ from langchain_core.tools import tool
 from app.tools.data import (
     PRODUCTS, KNOCKOUT_RULES, WAITING_PERIODS, EXCLUSIONS,
     HIGH_RISK_JOBS, PRODUCT_HISTORY_FLAGS, INSURANCE_AMOUNT_LIMITS,
-    _json,
+    _json, _guard_user_info,
 )
 
 
@@ -17,7 +17,7 @@ from app.tools.data import (
 
 class PrecheckInput(BaseModel):
     product_code: str = Field(..., description="상품 코드 (예: B00172014)")
-    age: int = Field(default=0, ge=0, le=120, description="피보험자 나이 (0~120)")
+    age: int | None = Field(default=None, description="피보험자 나이. 사용자가 언급하지 않았으면 null")
     gender: str = Field(default="", description="성별 (M: 남성, F: 여성, 빈 값 허용)")
     history_summary: str = Field(
         default="", description="병력/건강 이력 요약 (예: 고혈압 5년, 당뇨 투약 중)"
@@ -62,16 +62,19 @@ class DisclosureRiskInput(BaseModel):
 
 
 @tool(args_schema=PrecheckInput)
-def underwriting_precheck(product_code: str, age: int = 0, gender: str = "", history_summary: str = "") -> str:
+def underwriting_precheck(product_code: str, age: int | None = None, gender: str = "", history_summary: str = "") -> str:
     """나이·병력 기반 인수 사전 적합성 검토. 특정 고객의 건강 이력으로 가입 가능 여부를 판단할 때 사용.
     상품 규정상 연령·채널 조건만 확인할 때는 eligibility_by_product_rule 사용."""
+    guard = _guard_user_info({"나이": age})
+    if guard:
+        return guard
     p = PRODUCTS.get(product_code)
     if not p:
         return _json({"eligible": False, "reason": f"상품 '{product_code}' 없음"})
     knockout_issues, coverage_caveats = [], []
-    if age and age < p.get("min_age", 0):
+    if age < p.get("min_age", 0):
         knockout_issues.append(f"최소 가입 나이({p['min_age']}세) 미만")
-    if age and age > p.get("max_age", 999):
+    if age > p.get("max_age", 999):
         knockout_issues.append(f"최대 가입 나이({p['max_age']}세) 초과")
     if history_summary:
         hs = history_summary.lower()

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 
-from app.tools.data import PRODUCTS, PREMIUM_TABLES, SURRENDER_VALUE_RULES, _json
+from app.tools.data import PRODUCTS, PREMIUM_TABLES, SURRENDER_VALUE_RULES, _json, _guard_user_info
 
 
 # ── Input Schemas ─────────────────────────────────────────────────────────────
@@ -13,22 +13,22 @@ from app.tools.data import PRODUCTS, PREMIUM_TABLES, SURRENDER_VALUE_RULES, _jso
 
 class PremiumEstimateInput(BaseModel):
     product_code: str = Field(..., description="상품 코드 (예: B00115023)")
-    age: int = Field(default=30, ge=0, le=120, description="피보험자 나이 (0~120)")
-    gender: str = Field(default="M", pattern=r"^[MF]$", description="성별 (M: 남성, F: 여성)")
+    age: int | None = Field(default=None, description="피보험자 나이. 사용자가 언급하지 않았으면 null")
+    gender: str | None = Field(default=None, description="성별 (M/F). 사용자가 언급하지 않았으면 null")
 
 
 class PremiumCompareInput(BaseModel):
     codes: str = Field(
         ..., description="비교할 상품 코드 목록 (쉼표 또는 공백 구분, 예: B00115023, B00197011)"
     )
-    age: int = Field(default=30, ge=0, le=120, description="피보험자 나이 (0~120)")
-    gender: str = Field(default="M", pattern=r"^[MF]$", description="성별 (M/F)")
+    age: int | None = Field(default=None, description="피보험자 나이. 사용자가 언급하지 않았으면 null")
+    gender: str | None = Field(default=None, description="성별 (M/F). 사용자가 언급하지 않았으면 null")
 
 
 class PlanOptionsInput(BaseModel):
     product_code: str = Field(..., description="상품 코드 (예: B00312011)")
-    age: int = Field(default=30, ge=0, le=120, description="피보험자 나이 (0~120)")
-    gender: str = Field(default="M", pattern=r"^[MF]$", description="성별 (M/F)")
+    age: int | None = Field(default=None, description="피보험자 나이. 사용자가 언급하지 않았으면 null")
+    gender: str | None = Field(default=None, description="성별 (M/F). 사용자가 언급하지 않았으면 null")
 
 
 class AmountSuggestInput(BaseModel):
@@ -39,15 +39,15 @@ class AmountSuggestInput(BaseModel):
 
 class RenewalProjectionInput(BaseModel):
     product_code: str = Field(..., description="상품 코드 (갱신형 상품, 예: B00115023)")
-    age: int = Field(default=30, ge=0, le=120, description="현재 나이 (0~120)")
+    age: int | None = Field(default=None, description="현재 나이. 사용자가 언급하지 않았으면 null")
     horizon: int = Field(default=20, ge=1, le=50, description="추정 기간 (년)")
 
 
 class AffordabilityInput(BaseModel):
     budget: int = Field(..., ge=1000, description="월 예산 (원 단위, 최소 1,000원)")
     product_code: str = Field(..., description="상품 코드 (예: B00172014)")
-    age: int = Field(default=30, ge=0, le=120, description="피보험자 나이 (0~120)")
-    gender: str = Field(default="M", pattern=r"^[MF]$", description="성별 (M/F)")
+    age: int | None = Field(default=None, description="피보험자 나이. 사용자가 언급하지 않았으면 null")
+    gender: str | None = Field(default=None, description="성별 (M/F). 사용자가 언급하지 않았으면 null")
 
 
 class ProductCodeInput(BaseModel):
@@ -76,8 +76,11 @@ def _calc_premium(product_code: str, age: int, gender: str, amount_factor: float
 
 
 @tool(args_schema=PremiumEstimateInput)
-def premium_estimate(product_code: str, age: int = 30, gender: str = "M") -> str:
+def premium_estimate(product_code: str, age: int | None = None, gender: str | None = None) -> str:
     """보험 상품의 예상 월 보험료를 산출합니다. 나이와 성별이 필요합니다."""
+    guard = _guard_user_info({"나이": age, "성별": gender})
+    if guard:
+        return guard
     p = PRODUCTS.get(product_code)
     if not p:
         return _json({"error": f"상품 '{product_code}' 없음"})
@@ -93,8 +96,11 @@ def premium_estimate(product_code: str, age: int = 30, gender: str = "M") -> str
 
 
 @tool(args_schema=PremiumCompareInput)
-def premium_compare(codes: str, age: int = 30, gender: str = "M") -> str:
+def premium_compare(codes: str, age: int | None = None, gender: str | None = None) -> str:
     """여러 상품의 보험료를 비교합니다. 코드를 쉼표/공백으로 구분합니다."""
+    guard = _guard_user_info({"나이": age, "성별": gender})
+    if guard:
+        return guard
     code_list = [c.strip() for c in codes.replace(",", " ").split() if c.strip()]
     comparison = []
     for code in code_list:
@@ -110,9 +116,12 @@ def premium_compare(codes: str, age: int = 30, gender: str = "M") -> str:
 
 
 @tool(args_schema=PlanOptionsInput)
-def plan_options(product_code: str, age: int = 30, gender: str = "M") -> str:
+def plan_options(product_code: str, age: int | None = None, gender: str | None = None) -> str:
     """상품의 납입 기간·납입 방식 플랜 옵션(10년납·20년납·전기납 등)을 조회합니다.
     보험료 금액 산출은 premium_estimate 사용."""
+    guard = _guard_user_info({"나이": age, "성별": gender})
+    if guard:
+        return guard
     p = PRODUCTS.get(product_code)
     if not p:
         return _json({"error": f"상품 '{product_code}' 없음"})
@@ -149,8 +158,11 @@ def amount_suggest(product_code: str, income: int = 0, goal: str = "") -> str:
 
 
 @tool(args_schema=RenewalProjectionInput)
-def renewal_premium_projection(product_code: str, age: int = 30, horizon: int = 20) -> str:
+def renewal_premium_projection(product_code: str, age: int | None = None, horizon: int = 20) -> str:
     """갱신형 상품의 갱신 시점별 예상 보험료를 추정합니다."""
+    guard = _guard_user_info({"나이": age})
+    if guard:
+        return guard
     p = PRODUCTS.get(product_code)
     if not p:
         return _json({"error": f"상품 '{product_code}' 없음"})
@@ -172,8 +184,11 @@ def renewal_premium_projection(product_code: str, age: int = 30, horizon: int = 
 
 
 @tool(args_schema=AffordabilityInput)
-def affordability_check(budget: int, product_code: str, age: int = 30, gender: str = "M") -> str:
+def affordability_check(budget: int, product_code: str, age: int | None = None, gender: str | None = None) -> str:
     """월 예산 내에서 보험 가입이 가능한지 확인합니다."""
+    guard = _guard_user_info({"나이": age, "성별": gender})
+    if guard:
+        return guard
     p = PRODUCTS.get(product_code)
     monthly = _calc_premium(product_code, age, gender)
     if monthly is None:
