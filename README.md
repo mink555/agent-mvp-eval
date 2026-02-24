@@ -16,13 +16,15 @@ pinned: false
 
 ## 목적
 
-라이나생명 12개 판매 상품에 대해 상품 조회, 보험료 산출, 가입 심사, 보장 분석, 청구 안내, 컴플라이언스 검토를 수행하는 AI 챗봇을 구현함. 도구가 54개로 늘어나면서 발생하는 오호출·비용 증가·지연 문제를 해결하는 것이 핵심 과제였음.
+12개 보험 상품에 대해 상품 조회, 보험료 산출, 가입 심사, 보장 분석, 청구 안내, 컴플라이언스 검토를 수행하는 AI 챗봇을 구현함. 도구가 54개로 늘어나면서 발생하는 오호출·비용 증가·지연 문제를 해결하는 것이 핵심 과제였음.
 
 | 문제 | 원인 | 영향 |
 |------|------|------|
 | 오호출 | 유사 도구 간 혼동 (premium_estimate vs plan_options) | 잘못된 답변 |
 | 비용 증가 | 매 요청마다 54개 도구 스키마가 컨텍스트에 포함됨 | 토큰 낭비 |
 | 지연 증가 | 컨텍스트 길이에 비례해 응답 시간 상승 | UX 저하 |
+
+> 도구가 10개를 넘으면 정확도가 저하되기 시작하고, 37개 도구 기준 ~6,200 토큰이 소비됨 [(참고)](https://achan2013.medium.com/how-many-tools-functions-can-an-ai-agent-has-21e0a82b7847). RAG-MCP 패턴처럼 "모든 도구를 넘기지 말고, 필요한 것만 검색해서 넘기자"는 접근이 필요했음 [(참고)](https://writer.com/engineering/rag-mcp/).
 
 ---
 
@@ -112,6 +114,8 @@ python -m scripts.eval_tool_recall --verbose     # 오판 사례 상세
 
 ### 5노드 파이프라인 (LangGraph)
 
+[LangGraph](https://langchain-ai.github.io/langgraph/)로 ReAct 패턴 기반 5노드 그래프를 구성함.
+
 ```
 START → [input_guardrail] → [query_rewriter] → [agent ↔ tools] → [output_guardrail] → END
 ```
@@ -130,11 +134,11 @@ START → [input_guardrail] → [query_rewriter] → [agent ↔ tools] → [outp
 
 ### 쿼리 재작성 (Query Rewriter)
 
-"그거 얼마야?", "그건?" 같은 15자 미만 후속질문은 ChromaDB 검색 정확도가 떨어짐. 이전 대화 맥락을 참조해 구체적 쿼리로 재작성하여 Tool Search 정확도를 보완함.
+"그거 얼마야?", "그건?" 같은 15자 미만 후속질문은 ChromaDB 검색 정확도가 떨어짐. 이전 대화 맥락을 참조해 구체적 쿼리로 재작성하여 Tool Search 정확도를 보완함. Query Transformation은 Advanced RAG의 핵심 기법 중 하나임 [(참고)](https://www.promptingguide.ai/research/rag).
 
 ### 상품공시실 PDF 기반 RAG
 
-라이나생명 상품공시실에서 12개 상품요약서 PDF + 표준약관 + 회사 정보를 수집함. PyMuPDF로 텍스트 추출 후 500자 청크로 분할하여 ChromaDB에 인제스트함(~1,400 벡터). 도구 데이터에 없는 약관 조항·면책 규정은 RAG가 보완함.
+보험 상품공시실에서 12개 상품요약서 PDF + 표준약관 + 회사 정보를 수집함. PyMuPDF로 텍스트 추출 후 500자 청크로 분할하여 ChromaDB에 인제스트함(~1,400 벡터). 도구 데이터에 없는 약관 조항·면책 규정은 RAG가 보완함.
 
 ### Agentic 시스템 프롬프트
 
@@ -170,15 +174,15 @@ python run_mcp.py --inspect
 | 실시간 upsert | rebuild 필요 | O | **O** |
 | 인프라 | 없음 | Docker 3개 | **pip 1줄** |
 
-벡터 ~1,800개(도구 370 + RAG 1,400) 규모에서 Milvus는 오버엔지니어링이고, FAISS는 메타데이터 필터링을 직접 구현해야 함. ChromaDB는 `pip install` 한 줄로 필요한 기능이 전부 됨.
+벡터 ~1,800개(도구 370 + RAG 1,400) 규모에서 Milvus는 오버엔지니어링이고, FAISS는 메타데이터 필터링을 직접 구현해야 함. ChromaDB는 `pip install` 한 줄로 필요한 기능이 전부 됨. 10M 벡터 미만 프로젝트에서 ChromaDB가 권장됨 [(참고)](https://www.firecrawl.dev/blog/best-vector-databases). 주요 벡터 DB 비교표는 [(DataCamp)](https://www.datacamp.com/blog/the-top-5-vector-databases) 참조.
 
 ### multilingual-e5-large
 
-한국어 MTEB Retrieval 최상위 모델. 비대칭 검색("query: {질문}" / "passage: {도구설명}") 네이티브 지원으로 도구 라우팅 정확도를 높임. 로컬 추론(~10ms/쿼리)으로 외부 API 미의존. 실측으로 Recall@5 = 100%, MRR = 0.99를 확인함.
+[Kor-IR 벤치마크](https://github.com/Atipico1/Kor-IR)(한국어 IR 전용)에서 오픈소스 모델 중 최상위 성능(NDCG@10 = 80.35, Avg = 81.03)을 기록함. Mr. TyDi 한국어 MRR@10 = 61.6으로 e5-base(55.8) 대비 +10% 향상 [(모델 카드)](https://huggingface.co/intfloat/multilingual-e5-large). 비대칭 검색 시 "query: " / "passage: " 프리픽스가 필수이며, 미적용 시 성능 저하가 발생함 [(E5 논문)](https://arxiv.org/abs/2402.05672). 로컬 추론(~10ms/쿼리)으로 외부 API 미의존.
 
 ### Multi-Vector 인덱싱
 
-도구 하나를 단일 벡터로 임베딩하면 여러 사용 예시의 평균으로 벡터가 희석됨. purpose + when_to_use 각각을 별도 문서로 인덱싱하고, 검색 시 tool별 max score로 집계하여 희석 없이 정확한 매칭을 달성함.
+도구 하나를 단일 벡터로 임베딩하면 여러 사용 예시의 평균으로 벡터가 희석됨. purpose + when_to_use 각각을 별도 문서로 인덱싱하고, 검색 시 tool별 max score로 집계하여 희석 없이 정확한 매칭을 달성함. ColBERT 등 multi-vector 모델이 single-vector 대비 정확도가 높은 것과 동일한 원리임 [(참고)](https://www.pinecone.io/blog/cascading-retrieval-with-multi-vector-representations/).
 
 ---
 
@@ -254,12 +258,30 @@ scripts/
 
 | 카테고리 | 기술 | 역할 |
 |----------|------|------|
-| LLM 오케스트레이션 | LangGraph | ReAct 그래프, 멀티턴, 조건부 분기 |
-| LLM | OpenRouter (qwen/qwen3-14b) | 다중 모델 라우팅 |
-| 벡터 DB | ChromaDB | 도구 라우팅 + RAG 검색 |
-| 임베딩 | multilingual-e5-large (1024차원) | 한국어 비대칭 검색 |
-| API 서버 | FastAPI | REST + SSE 스트리밍 |
-| MCP 서버 | FastMCP | Claude Desktop/Cursor 연동 |
+| LLM 오케스트레이션 | [LangGraph](https://langchain-ai.github.io/langgraph/) | ReAct 그래프, 멀티턴, 조건부 분기 |
+| LLM | [OpenRouter](https://openrouter.ai/) (qwen/qwen3-14b) | 다중 모델 라우팅 |
+| 벡터 DB | [ChromaDB](https://www.trychroma.com/) | 도구 라우팅 + RAG 검색 |
+| 임베딩 | [multilingual-e5-large](https://huggingface.co/intfloat/multilingual-e5-large) (1024차원) | 한국어 비대칭 검색 |
+| API 서버 | [FastAPI](https://fastapi.tiangolo.com/) | REST + SSE 스트리밍 |
+| MCP 서버 | [FastMCP](https://github.com/jlowin/fastmcp) | Claude Desktop/Cursor 연동 |
 | 체크포인터 | langgraph-checkpoint-sqlite | 대화 상태 영구 저장 |
-| PDF 파싱 | PyMuPDF | 약관/요약서 텍스트 추출 |
+| PDF 파싱 | [PyMuPDF](https://pymupdf.readthedocs.io/) | 약관/요약서 텍스트 추출 |
 | 고객 DB | SQLite3 | 고객/계약 시뮬레이션 |
+
+---
+
+## References
+
+| 주제 | 출처 |
+|------|------|
+| 도구 수 증가 시 정확도 저하 | [How many tools can an AI Agent have?](https://achan2013.medium.com/how-many-tools-functions-can-an-ai-agent-has-21e0a82b7847) |
+| RAG-MCP: 도구 검색 후 LLM에 전달 | [When too many tools become too much context — WRITER](https://writer.com/engineering/rag-mcp/) |
+| 벡터 DB 비교 (ChromaDB, FAISS, Milvus 등) | [Best Vector Databases 2026 — Firecrawl](https://www.firecrawl.dev/blog/best-vector-databases) |
+| 벡터 DB 기능 비교표 | [Top 7 Vector Databases — DataCamp](https://www.datacamp.com/blog/the-top-5-vector-databases) |
+| 한국어 IR 벤치마크 (Kor-IR) | [Kor-IR: Korean Information Retrieval Benchmark](https://github.com/Atipico1/Kor-IR) |
+| multilingual-e5-large 모델 카드 (Mr. TyDi) | [intfloat/multilingual-e5-large — Hugging Face](https://huggingface.co/intfloat/multilingual-e5-large) |
+| E5 임베딩 논문 (비대칭 프리픽스) | [Multilingual E5 Text Embeddings — arXiv 2402.05672](https://arxiv.org/abs/2402.05672) |
+| Multi-vector retrieval 원리 | [Cascading retrieval with multi-vector representations — Pinecone](https://www.pinecone.io/blog/cascading-retrieval-with-multi-vector-representations/) |
+| Late Interaction 모델 개요 (ColBERT) | [Late Interaction Retrieval Models — Weaviate](https://weaviate.io/blog/late-interaction-overview) |
+| Query Rewriting / Advanced RAG 기법 | [RAG for LLMs — Prompting Guide](https://www.promptingguide.ai/research/rag) |
+| LangGraph 공식 문서 | [LangGraph Overview — LangChain](https://langchain-ai.github.io/langgraph/) |
