@@ -14,6 +14,21 @@ def _json(data: Any) -> str:
     """도구 응답용 JSON 직렬화. 모든 도구가 이 함수를 공유한다."""
     return json.dumps(data, ensure_ascii=False, indent=2)
 
+
+def _guard_user_info(checks: dict[str, Any]) -> str | None:
+    """사용자 제공 필수 인자 검증. None인 필드가 있으면 안내 메시지 반환.
+
+    사용법: guard = _guard_user_info({"나이": age, "성별": gender})
+    """
+    missing = [label for label, val in checks.items() if val is None]
+    if not missing:
+        return None
+    return _json({
+        "needs_user_input": True,
+        "missing": missing,
+        "message": f"{', '.join(missing)} 정보가 필요합니다. 사용자에게 확인해 주세요.",
+    })
+
 # ═══════════════════════════════════ 상품 ═════════════════════════════════════
 
 PRODUCTS = {
@@ -1036,6 +1051,10 @@ def _build_answer_prompt() -> str:
         "- 이모티콘(emoji)을 절대 사용하지 마세요\n"
         "- 한 응답은 3~5문장 이내로 작성하되, 비교·목록이 필요하면 불릿으로 정리하세요\n"
         "- 같은 정보를 다른 표현으로 되풀이하지 마세요\n\n"
+        "도구 호출 규칙:\n"
+        "- 나이·성별 등 사용자가 직접 언급하지 않은 정보를 추측하여 도구에 넣지 마세요\n"
+        "- 도구가 needs_user_input 응답을 반환하면, 해당 정보를 사용자에게 물어보세요\n"
+        "- 이전 대화에서 사용자가 제공한 정보(나이, 성별 등)는 재사용해도 됩니다\n\n"
         "규칙:\n"
         "- 제공된 도구 결과와 참고 문서를 우선적으로 활용하세요\n"
         "- 확실하지 않은 내용은 \"약관을 확인해 주세요\"로 안내하세요\n"
