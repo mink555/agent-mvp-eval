@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from contextlib import asynccontextmanager
 
@@ -121,6 +122,53 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+_THINK_RE = re.compile(r"<think>.*?</think>\s*", flags=re.DOTALL)
+
+
+def _strip_think(text: str) -> str:
+    """최종 응답에서 <think>...</think> 블록을 제거."""
+    return _THINK_RE.sub("", text)
+
+
+class _ThinkFilter:
+    """스트리밍 중 <think>...</think> 블록을 실시간 필터링."""
+
+    def __init__(self) -> None:
+        self._buf = ""
+        self._inside = False
+
+    def feed(self, text: str) -> str:
+        self._buf += text
+        out: list[str] = []
+        while self._buf:
+            if self._inside:
+                end = self._buf.find("</think>")
+                if end >= 0:
+                    self._buf = self._buf[end + 8:].lstrip("\n")
+                    self._inside = False
+                    continue
+                for i in range(1, min(9, len(self._buf) + 1)):
+                    if "</think>"[:i] == self._buf[-i:]:
+                        self._buf = self._buf[-i:]
+                        return ""
+                self._buf = ""
+                return ""
+            start = self._buf.find("<think>")
+            if start >= 0:
+                out.append(self._buf[:start])
+                self._buf = self._buf[start + 7:]
+                self._inside = True
+                continue
+            for i in range(1, min(8, len(self._buf) + 1)):
+                if "<think>"[:i] == self._buf[-i:]:
+                    out.append(self._buf[:-i])
+                    self._buf = self._buf[-i:]
+                    return "".join(out)
+            out.append(self._buf)
+            self._buf = ""
+        return "".join(out)
+
+
 # ── API Endpoints ─────────────────────────────────────────────────────────────
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -141,7 +189,7 @@ async def chat(req: ChatRequest) -> ChatResponse:
     last_msg = result["messages"][-1]
 
     return ChatResponse(
-        answer=last_msg.content,
+        answer=_strip_think(last_msg.content),
         session_id=req.session_id,
         thread_id=req.thread_id,
         tools_used=extract_tools_used(result["messages"]),
@@ -173,6 +221,7 @@ async def chat_stream(req: ChatRequest):
         node_start_times: dict[str, float] = {}
         tool_start_times: dict[str, float] = {}
         turn_trace: list[dict] = []
+        think_filter = _ThinkFilter()
 
         try:
             async for event in graph.astream_events(
@@ -232,7 +281,9 @@ async def chat_stream(req: ChatRequest):
                 elif kind == "on_chat_model_stream":
                     chunk = event["data"]["chunk"]
                     if chunk.content:
-                        yield _sse("token", {"text": chunk.content})
+                        visible = think_filter.feed(chunk.content)
+                        if visible:
+                            yield _sse("token", {"text": visible})
 
                 elif kind == "on_chain_end" and name == "LangGraph":
                     output = event["data"].get("output", {})
@@ -244,8 +295,9 @@ async def chat_stream(req: ChatRequest):
                     ))
 
                     if messages:
+                        answer = _strip_think(messages[-1].content)
                         yield _sse("done", {
-                            "answer": messages[-1].content,
+                            "answer": answer,
                             "tools_used": all_tools,
                             "tool_used": all_tools[0] if all_tools else None,
                             "trace": turn_trace,

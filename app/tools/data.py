@@ -1028,7 +1028,7 @@ def _build_answer_prompt() -> str:
         for code, p in PRODUCTS.items()
     )
     return (
-        "당신은 라이나생명 보험 상담 챗봇입니다.\n\n"
+        "당신은 라이나생명 보험 상담 챗봇입니다. 반드시 한국어로만 답변하세요.\n\n"
         f"판매 중인 상품 ({len(PRODUCTS)}개):\n"
         f"{product_lines}\n\n"
         "'우리 회사/당사/우리 상품' 등은 모두 라이나생명을 가리킵니다.\n\n"
