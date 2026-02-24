@@ -16,6 +16,6 @@ def get_llm() -> ChatOpenAI:
         model=s.openrouter_model,
         api_key=s.openrouter_api_key,
         base_url=s.openrouter_base_url,
-        temperature=0.3,
+        temperature=0.2,
         max_tokens=2048,
     )
