@@ -9,7 +9,6 @@ from app.tools.data import (
     EXCLUSIONS, REQUIRED_DISCLOSURES, KNOCKOUT_RULES,
     DIAGNOSIS_DEFINITIONS, ICD_MAPPINGS, HIGH_RISK_JOBS, FORBIDDEN_PHRASES,
     CLAIM_GUIDES, CLAIM_FORMS, CONTRACT_ACTIONS,
-    SYSTEM_PROMPTS,
     _json,
 )
 
@@ -127,13 +126,6 @@ def register_all_resources(mcp: FastMCP) -> int:
                    description="계약 관리 가이드", mime_type="application/json")
     def contract_actions() -> str:
         return _json(CONTRACT_ACTIONS)
-
-    # ═══ 설정 ═══
-
-    @_counted_resource("insurance://config/system-prompts", name="system_prompts",
-                   description="시스템 프롬프트", mime_type="application/json")
-    def config_prompts() -> str:
-        return _json(SYSTEM_PROMPTS)
 
     # ═══ 도구 카탈로그 ═══
 
