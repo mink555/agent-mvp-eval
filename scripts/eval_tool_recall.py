@@ -431,6 +431,29 @@ def run_eval(k: int = 10, verbose: bool = False, threshold: float = DEFAULT_NO_C
     _print_single(results, k, threshold, verbose)
 
 
+def _run_card_validation() -> bool:
+    """ToolCard 정합성 검증. 문제가 있으면 경고 출력 후 False 반환."""
+    from app.tool_search.tool_cards import (
+        validate_confusion_pairs,
+        validate_duplicate_when_to_use,
+    )
+
+    print("=" * 60)
+    print("  ToolCard 정합성 검증")
+    print("=" * 60)
+
+    warnings = validate_confusion_pairs() + validate_duplicate_when_to_use()
+    if warnings:
+        for w in warnings:
+            print(f"  ⚠️  {w}")
+        print(f"\n  총 {len(warnings)}건 경고\n")
+        return False
+
+    print("  ✅ 혼동 쌍 cross-reference 정상")
+    print("  ✅ when_to_use 중복 발화 없음\n")
+    return True
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Tool Search 평가 (Tool Acc + No-Call Acc)")
     parser.add_argument("--k", type=int, default=10, help="top-k (기본값: 10)")
@@ -441,6 +464,8 @@ if __name__ == "__main__":
     parser.add_argument("--ks", type=int, nargs="+", default=[1, 3, 5, 7, 10],
                         help="비교할 k 값들 (기본값: 1 3 5 7 10)")
     args = parser.parse_args()
+
+    _run_card_validation()
 
     if args.compare:
         _print_compare(args.ks, args.threshold)
