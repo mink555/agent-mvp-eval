@@ -70,7 +70,7 @@ _CARDS: list[ToolCard] = [
         purpose="판매 중인 보험 상품 목록을 키워드·카테고리로 검색한다. 어떤 상품이 있는지, 목록·리스트가 필요할 때 사용한다. 보험료·보장 조회 전 상품코드를 모를 때 선행 호출한다.",
         when_to_use=(
             "우리 회사 상품 뭐 있어?",
-            "라이나생명 판매 상품 목록 알려줘",
+            "판매 상품 목록 알려줘",
             "치아보험 있어?",
             "암보험 상품 뭐가 있어?",
             "건강보험 종류 알려줘",
@@ -80,19 +80,10 @@ _CARDS: list[ToolCard] = [
             "종신보험 상품 있어?",
             "간편심사 상품 목록",
             "치매 관련 상품 있어?",
-            "어떤 보험 상품 파는지 알고 싶어",
             "상품 카탈로그 보여줘",
             "보험 상품 목록 조회",
-            "치아보험 보험료 알려줘",
-            "암보험 보험료 얼마야?",
-            "건강보험 보험료 계산해줘",
-            "치아보험 보장 내용 알려줘",
-            "암보험 가입 조건 뭐야?",
-            # 신규 상품
             "실버치아보험 있어?",
-            "실버치아보험 보험료 알려줘",
             "치매보험 상품 뭐 있어?",
-            "실속치매보험 보험료 얼마야?",
             "전에없던 치매간병보험 알려줘",
             "첫날부터 암보험 뭐야?",
             "골라담는 간편건강보험 있어?",
@@ -180,6 +171,9 @@ _CARDS: list[ToolCard] = [
         when_to_use=(
             "R001 특약 상세 내용",
             "암진단특약 자세히 알려줘",
+        ),
+        when_not_to_use=(
+            "특약 전체 목록이 필요하다 → rider_list 사용",
         ),
         tags=("특약", "상세조회"),
     ),
@@ -305,16 +299,18 @@ _CARDS: list[ToolCard] = [
 
     ToolCard(
         name="renewal_premium_projection",
-        purpose="갱신형 상품의 향후 갱신 시점별 예상 보험료를 추정한다.",
+        purpose="갱신형 상품의 향후 갱신 시점별 예상 보험료 추이를 시뮬레이션한다.",
         when_to_use=(
-            "갱신하면 보험료 얼마나 올라?",
-            "10년 후 보험료 예상",
-            "갱신 보험료 변화 추이",
+            "10년 후 보험료 얼마나 올라?",
+            "갱신 보험료 변화 추이 시뮬레이션",
+            "향후 갱신별 보험료 추정",
+            "장기 보험료 변화 그래프",
         ),
         when_not_to_use=(
             "현재 기준 보험료가 궁금하다 → premium_estimate 사용",
+            "다음 갱신 시 단순 안내가 필요하다 → underwriting_renewal_premium_notice 사용",
         ),
-        tags=("갱신", "보험료", "예측"),
+        tags=("갱신", "보험료", "시뮬레이션"),
     ),
 
     ToolCard(
@@ -393,6 +389,8 @@ _CARDS: list[ToolCard] = [
         when_not_to_use=(
             "전체 보장 요약이 필요하다 → coverage_summary 사용",
             "보험료가 궁금하다 → premium_estimate 사용",
+            "특정 급부의 보장 금액만 알고 싶다 → benefit_amount_lookup 사용",
+            "보험금 청구 절차가 궁금하다 → claim_guide 사용",
         ),
         tags=("보장내용", "상세조회", "특정보장"),
     ),
@@ -404,6 +402,9 @@ _CARDS: list[ToolCard] = [
             "암 진단금 얼마야?",
             "입원급부금 금액",
             "이 급부 얼마 받아?",
+        ),
+        when_not_to_use=(
+            "보장 유형별 전체 내용이 궁금하다 → coverage_detail 사용",
         ),
         tags=("급부금액",),
     ),
@@ -550,6 +551,9 @@ _CARDS: list[ToolCard] = [
             "보장개시일",
             "감액기간 알려줘",
         ),
+        when_not_to_use=(
+            "보장이 안 되는 사유(면책 사유 목록)가 궁금하다 → underwriting_exclusions 사용",
+        ),
         tags=("면책기간", "보장개시", "감액기간"),
     ),
 
@@ -608,13 +612,17 @@ _CARDS: list[ToolCard] = [
 
     ToolCard(
         name="underwriting_renewal_premium_notice",
-        purpose="갱신 시 예상 보험료 인상 범위를 안내한다.",
+        purpose="다음 갱신 시 예상 보험료 인상 범위를 단순 안내한다.",
         when_to_use=(
-            "갱신하면 보험료 얼마나 올라?",
-            "갱신 보험료 변동 안내",
-            "갱신 후 예상 금액",
+            "다음 갱신 때 보험료 얼마야?",
+            "갱신 보험료 인상 안내",
+            "이번 갱신 후 예상 금액",
         ),
-        tags=("갱신", "보험료인상"),
+        when_not_to_use=(
+            "장기 보험료 변화 추이를 시뮬레이션하고 싶다 → renewal_premium_projection 사용",
+            "갱신 가능 여부·최대 나이 확인이 필요하다 → underwriting_renewal_eligibility 사용",
+        ),
+        tags=("갱신", "보험료안내"),
     ),
 
     ToolCard(
@@ -761,6 +769,9 @@ _CARDS: list[ToolCard] = [
             "진단서 외에 뭐가 필요해?",
             "청구 서류 목록",
         ),
+        when_not_to_use=(
+            "청구 절차·프로세스가 궁금하다 → claim_guide 사용",
+        ),
         tags=("청구", "서류"),
     ),
 
@@ -863,6 +874,27 @@ _CARDS: list[ToolCard] = [
 ]
 
 # ──────────────────────────────────────────────────────────────
+# 혼동 쌍 레지스트리 — 양방향 cross-reference 자동 검증용
+# 새 도구 추가 시 유사 도구가 있으면 여기에 등록할 것
+# ──────────────────────────────────────────────────────────────
+CONFUSION_PAIRS: list[tuple[str, str]] = [
+    ("product_search", "coverage_summary"),
+    ("coverage_summary", "coverage_detail"),
+    ("coverage_detail", "benefit_amount_lookup"),
+    ("premium_estimate", "plan_options"),
+    ("premium_estimate", "amount_suggest"),
+    ("underwriting_precheck", "eligibility_by_product_rule"),
+    ("underwriting_exclusions", "underwriting_waiting_periods"),
+    ("underwriting_renewal_eligibility", "underwriting_renewal_premium_notice"),
+    ("renewal_premium_projection", "underwriting_renewal_premium_notice"),
+    ("claim_guide", "coverage_detail"),
+    ("claim_guide", "claim_required_forms"),
+    ("rider_list", "rider_get"),
+    ("rag_terms_query_engine", "rag_product_info_query_engine"),
+    ("compliance_phrase_generator", "compliance_misleading_check"),
+]
+
+# ──────────────────────────────────────────────────────────────
 # 공개 인터페이스
 # ──────────────────────────────────────────────────────────────
 REGISTRY: dict[str, ToolCard] = {card.name: card for card in _CARDS}
@@ -873,7 +905,40 @@ def get_card(tool_name: str) -> ToolCard | None:
     return REGISTRY.get(tool_name)
 
 
-
 def missing_cards(tool_names: list[str]) -> list[str]:
     """카드가 없는 도구 이름 목록을 반환한다. 신규 tool 추가 시 경고용."""
     return [n for n in tool_names if n not in REGISTRY]
+
+
+def validate_confusion_pairs() -> list[str]:
+    """혼동 쌍의 양방향 cross-reference 검증. 누락 시 경고 반환."""
+    warnings: list[str] = []
+    for a, b in CONFUSION_PAIRS:
+        card_a, card_b = REGISTRY.get(a), REGISTRY.get(b)
+        if not card_a:
+            warnings.append(f"CONFUSION_PAIRS에 등록된 '{a}'의 ToolCard가 없음")
+            continue
+        if not card_b:
+            warnings.append(f"CONFUSION_PAIRS에 등록된 '{b}'의 ToolCard가 없음")
+            continue
+        if not any(b in s for s in card_a.when_not_to_use):
+            warnings.append(f"{a} → {b} 가이드 누락 (when_not_to_use에 '{b}' 미포함)")
+        if not any(a in s for s in card_b.when_not_to_use):
+            warnings.append(f"{b} → {a} 가이드 누락 (when_not_to_use에 '{a}' 미포함)")
+    return warnings
+
+
+def validate_duplicate_when_to_use() -> list[str]:
+    """서로 다른 도구에 동일한 when_to_use 발화가 있는지 검사."""
+    seen: dict[str, str] = {}
+    warnings: list[str] = []
+    for card in _CARDS:
+        for phrase in card.when_to_use:
+            normalized = phrase.strip().rstrip("?")
+            if normalized in seen and seen[normalized] != card.name:
+                warnings.append(
+                    f"중복 발화: '{phrase}' → {seen[normalized]}, {card.name}"
+                )
+            else:
+                seen[normalized] = card.name
+    return warnings

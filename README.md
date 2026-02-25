@@ -190,6 +190,106 @@ python run_mcp.py --inspect
 
 도구 하나를 단일 벡터로 임베딩하면 여러 사용 예시의 평균으로 벡터가 희석됨. purpose + when_to_use 각각을 별도 문서로 인덱싱하고, 검색 시 tool별 max score로 집계하여 희석 없이 정확한 매칭을 달성함. ColBERT 등 multi-vector 모델이 single-vector 대비 정확도가 높은 것과 동일한 원리임 [(참고)](https://www.pinecone.io/blog/cascading-retrieval-with-multi-vector-representations/).
 
+### Tool Card — 도구 문서 확장(Tool Document Expansion)
+
+#### 이게 뭔가
+
+LLM의 도구 description은 보통 한두 줄로 짧음. 이 짧은 텍스트만 임베딩하면 유사 도구 간 벡터가 거의 같아져서 검색 정확도가 떨어짐. **Tool Document Expansion**은 도구 문서에 구조화된 필드를 추가하여 임베딩 품질을 높이는 기법임.
+
+이 프로젝트의 ToolCard 구조:
+
+```python
+ToolCard(
+    name="premium_estimate",
+    purpose="나이·성별을 입력해 특정 상품의 예상 월 보험료를 산출한다.",
+    when_to_use=(                          # 검색 표면 확장용 합성 쿼리
+        "이 상품 보험료 얼마야?",
+        "40세 남성 보험료 계산해줘",
+    ),
+    when_not_to_use=(                      # LLM 최종 선택 가이드 (임베딩 제외)
+        "납입 플랜이 궁금하다 → plan_options 사용",
+    ),
+    tags=("보험료", "산출"),               # 도메인 클러스터링
+)
+```
+
+#### Few-shot과 다른 점
+
+| 기법 | 위치 | 목적 | 작동 시점 |
+|------|------|------|-----------|
+| Few-shot | LLM 프롬프트 안 | LLM 출력 패턴 학습 | 추론(generation) 시 |
+| Tool Doc Expansion | 벡터 DB 인덱스 안 | 검색(retrieval) 매칭 정확도 향상 | 인덱싱 + 검색 시 |
+
+when_to_use의 발화 예시는 LLM에게 보여주는 few-shot이 아니라, **벡터 검색이 매칭할 수 있는 표면을 넓히는 역할**을 함.
+
+#### 학술적 근거
+
+**Tool-DE** (Lu et al., Oct 2025) — 이 프로젝트의 직접적 근거 [(논문)](https://arxiv.org/abs/2510.22670)
+
+- LLM으로 도구 문서에 `function_description`, `when_to_use`, `tags`, `limitations` 필드를 자동 생성
+- 필드별 기여도를 ablation 실험으로 검증:
+  - `function_description` + `tags` → NDCG@10, Recall@10 기여가 가장 큼
+  - `when_to_use` → 기여 있지만 위 두 개보다 낮음
+  - `example_usage` (코드 예시) → 오히려 제거 시 성능 향상 (노이즈 유발)
+- 전체 효과: NDCG@10 +6~7ppt, Recall@10 +10ppt 개선
+
+**Re-Invoke** (Google, EMNLP 2024) — 합성 쿼리 생성 기법 [(논문)](https://arxiv.org/abs/2408.01875)
+
+- 각 도구에 대해 LLM으로 합성 쿼리 10개를 생성하여 도구 문서에 추가
+- ToolBench에서 nDCG@5 유의미 향상
+- 본 프로젝트의 when_to_use가 동일한 원리를 수동으로 적용한 것
+
+**RAG-MCP** (WRITER, 2025) — 업계 적용 사례 [(블로그)](https://writer.com/engineering/rag-mcp/)
+
+- 수백 개 도구를 메타데이터 기반으로 인덱싱 → top-k만 LLM에 전달
+- 토큰 비용 50% 이상 절감, 수천 개 도구까지 스케일
+
+이 접근법은 ToolBench(ICLR 2024, 16,000+ API), Toolshed(2024), PLUTO(2024) 등에서도 공통으로 사용되는 업계 표준 패턴임.
+
+#### 필드 ↔ 학술 대응
+
+| ToolCard 필드 | 학술 대응 | 벡터 임베딩 | 역할 |
+|---------------|-----------|-------------|------|
+| `purpose` | Tool-DE의 function_description | **O** | 도구 핵심 기능, 벡터 방향 결정 |
+| `when_to_use` | Re-Invoke의 synthetic queries | **O** | 검색 표면 확장 (사용자 발화 매칭) |
+| `tags` | Tool-DE의 tags | **O** | 도메인 클러스터링 |
+| `when_not_to_use` | Tool-DE의 limitations | **X** (의도적 제외) | LLM이 Top-K에서 최종 선택 시 혼동 방지 |
+
+when_not_to_use를 임베딩에서 제외한 것도 근거가 있음. 이 필드에는 **타 도구의 어휘**("premium_estimate 사용", "coverage_summary 사용")가 포함되므로 임베딩에 넣으면 벡터가 오염됨. Tool-DE ablation에서도 negative example 포함 시 성능 저하를 확인함.
+
+#### 현재 한계와 고도화 방향
+
+**한계 1. product_search의 when_to_use 오버핏**
+
+"치아보험 보험료 알려줘", "암보험 가입 조건 뭐야?" 같은 **타 도구 영역의 발화**가 product_search에 10개 포함되어 있음. "코드 없이 상품명만 알면 product_search를 먼저 호출해야 한다"는 체이닝 의도였지만, 이로 인해 product_search 임베딩이 premium_estimate·coverage_summary 방향으로 희석됨. 체이닝은 시스템 프롬프트가 해결할 영역이지 벡터 검색이 담당할 영역이 아님.
+
+→ 수정: 복합 발화 제거, 순수 상품 검색 발화만 유지
+
+**한계 2. 유사 도구 간 cross-reference 누락**
+
+| 혼동 쌍 | A→B 가이드 | B→A 가이드 |
+|---------|-----------|-----------|
+| renewal_projection ↔ renewal_notice | X | X |
+| benefit_amount ↔ coverage_detail | X | X |
+| rider_get ↔ rider_list | X | O |
+| claim_forms ↔ claim_guide | X | O |
+
+when_not_to_use가 양쪽 모두 없으면, Top-K에 두 도구가 함께 올라왔을 때 LLM이 구분할 근거가 없음.
+
+→ 수정: 혼동 쌍 cross-reference 보완 + when_to_use 발화 분리
+
+**한계 3. 수동 작성의 한계**
+
+현재 54개 도구 × 평균 7개 발화 = ~380개 when_to_use를 수동으로 작성함. 누락·중복·오버핏이 불가피함.
+
+→ 고도화: Re-Invoke 방식으로 LLM이 합성 쿼리를 자동 생성하는 파이프라인 도입. 수동 작성 대비 커버리지를 높이고 편향을 줄일 수 있음.
+
+**한계 4. 정적 임계값 기반 no-call 판정**
+
+현재 유사도 점수만으로 tool-call/no-call을 구분하는데, Tool-Call min(0.867)과 No-Call max(0.877)이 겹침(마진 = -0.010). Guardrail이 사전 차단하므로 운영에 문제는 없지만, Guardrail 우회 시 오판 가능성이 존재함.
+
+→ 고도화: Reranker 2단계 도입. Tool-DE의 Tool-Rank처럼 top-k 후보를 LLM 기반 reranker로 재정렬하면 경계 사례의 분리 마진이 개선됨.
+
 ---
 
 ## Quick Start
@@ -282,6 +382,11 @@ scripts/
 |------|------|
 | 도구 수 증가 시 정확도 저하 | [How many tools can an AI Agent have?](https://achan2013.medium.com/how-many-tools-functions-can-an-ai-agent-has-21e0a82b7847) |
 | RAG-MCP: 도구 검색 후 LLM에 전달 | [When too many tools become too much context — WRITER](https://writer.com/engineering/rag-mcp/) |
+| Tool Document Expansion (Tool-DE) | [Tools are under-documented — arXiv 2510.22670](https://arxiv.org/abs/2510.22670) |
+| 합성 쿼리 기반 도구 검색 (Re-Invoke) | [Re-Invoke: Tool Invocation Rewriting — EMNLP 2024](https://arxiv.org/abs/2408.01875) |
+| 대규모 도구 벤치마크 (ToolBench) | [ToolLLM: Facilitating LLMs to Master 16000+ APIs — ICLR 2024](https://arxiv.org/abs/2307.16789) |
+| Tool-to-Agent Retrieval | [Bridging Tools and Agents for Scalable LLM MAS](https://arxiv.org/abs/2511.01854) |
+| Tool Retrieval 연구 동향 종합 | [LLM Tool Retrieval and Generation — Emergent Mind](https://www.emergentmind.com/topics/tool-retrieval-generation) |
 | 벡터 DB 비교 (ChromaDB, FAISS, Milvus 등) | [Best Vector Databases 2026 — Firecrawl](https://www.firecrawl.dev/blog/best-vector-databases) |
 | 벡터 DB 기능 비교표 | [Top 7 Vector Databases — DataCamp](https://www.datacamp.com/blog/the-top-5-vector-databases) |
 | 한국어 IR 벤치마크 (Kor-IR) | [Kor-IR: Korean Information Retrieval Benchmark](https://github.com/Atipico1/Kor-IR) |
