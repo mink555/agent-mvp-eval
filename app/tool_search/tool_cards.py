@@ -899,10 +899,27 @@ CONFUSION_PAIRS: list[tuple[str, str]] = [
 # ──────────────────────────────────────────────────────────────
 REGISTRY: dict[str, ToolCard] = {card.name: card for card in _CARDS}
 
+# 코드 정의 원본 (override 복원용)
+CODE_REGISTRY: dict[str, ToolCard] = dict(REGISTRY)
+
 
 def get_card(tool_name: str) -> ToolCard | None:
     """도구 이름으로 ToolCard를 반환한다. 없으면 None."""
     return REGISTRY.get(tool_name)
+
+
+def apply_overrides() -> int:
+    """JSON Store에서 published override를 REGISTRY에 적용. 서버 시작 시 호출."""
+    from app.tool_search.toolcard_store import get_toolcard_store
+
+    store = get_toolcard_store()
+    count = 0
+    for name in store.list_overrides():
+        card = store.get_published(name)
+        if card:
+            REGISTRY[name] = card
+            count += 1
+    return count
 
 
 def missing_cards(tool_names: list[str]) -> list[str]:
