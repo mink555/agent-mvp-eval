@@ -611,6 +611,59 @@
       .msg { max-width: 95%; }
       .new-chat-btn span { display: none; }
     }
+
+    /* ── Product Catalog Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 1000; justify-content: center; align-items: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; width: 720px; max-width: 92vw; max-height: 80vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h2 { font-size: 16px; font-weight: 600; }
+    .modal-close {
+      background: none; border: none; color: var(--text-dim); font-size: 20px;
+      cursor: pointer; padding: 4px 8px; border-radius: 6px;
+    }
+    .modal-close:hover { background: var(--surface2); color: var(--text); }
+    .modal-body { overflow-y: auto; padding: 16px 20px; }
+    .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 640px) { .product-grid { grid-template-columns: 1fr; } }
+    .product-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .product-card:hover { border-color: var(--accent); background: var(--surface3); }
+    .product-card .pc-name { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .product-card .pc-meta {
+      font-size: 11px; color: var(--text-dim);
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;
+    }
+    .product-card .pc-tag {
+      padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 500;
+    }
+    .pc-tag.simplified { background: rgba(0,184,148,0.15); color: var(--success); }
+    .pc-tag.category { background: rgba(108,92,231,0.15); color: var(--accent-light); }
+    .pc-tag.renewal { background: rgba(253,203,110,0.15); color: var(--warning); }
+    .product-card .pc-highlights {
+      font-size: 12px; color: var(--text-dim); line-height: 1.5;
+    }
+    .product-card .pc-highlights li { margin-bottom: 2px; }
+    .catalog-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); padding: 6px 14px; border-radius: 8px;
+      font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+      transition: border-color 0.2s;
+    }
+    .catalog-btn:hover { border-color: var(--accent); color: var(--accent-light); }
   </style>
 </head>
 <body>
@@ -619,6 +672,10 @@
       <h1>TMR Console</h1>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
+      <button class="catalog-btn" onclick="openProductModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="3" x2="8" y2="21"/></svg>
+        상품 목록
+      </button>
       <button class="trace-toggle" onclick="toggleTrace()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         Trace
@@ -644,35 +701,41 @@
         <div class="examples-header">TMR 실전 상담 시나리오</div>
         <div class="example-groups">
           <div class="example-group">
-            <div class="group-label" style="color:var(--accent-light)">📞 암보험 신규 가입 (멀티턴)</div>
+            <div class="group-label" style="color:var(--accent-light)">📞 고위험 직업 + 유병력 복합 심사</div>
             <div class="group-items">
-              <button class="example-btn" onclick="askSequence(['50세 남성 고객인데 암보험 알아본대. 추천 상품 뭐 있어?', '첫날부터 암보험이 좋아 보이는데 보장 내용 자세히 알려줘', '이 고객이 고혈압 약 복용 중인데 가입 심사 어떻게 돼?'])">50세 남성 암보험 → 상품 상세 → 고혈압 심사</button>
+              <button class="example-btn" onclick="askSequence(['48세 남성 고객인데 택시기사야. 고혈압 약 복용 중이고 암보험 가입하고 싶대', '이 고객 직업 위험등급 먼저 확인해줘', '그러면 첫날부터 암보험 가입 가능한 조건이 뭐야? 고혈압이면 거절될 수 있어?', '혹시 간편심사로 가입 가능한 건강보험도 있어?'])">택시기사 + 고혈압 → 직업등급 확인 → 암보험 심사 → 간편심사 대안</button>
             </div>
           </div>
           <div class="example-group">
-            <div class="group-label" style="color:var(--info)">📞 치아보험 가입 상담 (멀티턴)</div>
+            <div class="group-label" style="color:var(--info)">📞 치매보험 비교 + 노부모 설계</div>
             <div class="group-items">
-              <button class="example-btn" onclick="askSequence(['35세 여성 고객이 치아보험 문의하는데 어떤 상품 있어?', '건강한치아보험 보장 범위랑 감액 조건 알려줘', '이 상품 보험료 얼마쯤 나와?'])">35세 여성 치아보험 → 보장·감액 확인 → 보험료</button>
+              <button class="example-btn" onclick="askSequence(['65세 어머니가 치매 걱정이야. 치매간병보험이랑 실속치매보험 차이가 뭐야?', '보장 금액이랑 보험료 비교해줘', '어머니가 당뇨 있는데 가입 가능해?', '그럼 간편심사 상품 중에 치매 보장 포함된 거 있어?'])">치매보험 2종 비교 → 보험료 → 당뇨 심사 → 간편심사 대안</button>
             </div>
           </div>
           <div class="example-group">
-            <div class="group-label" style="color:var(--danger)">📞 유병력자 간편심사 (멀티턴)</div>
+            <div class="group-label" style="color:var(--danger)">📞 암 진단 후 보험금 청구 + 추가보장</div>
             <div class="group-items">
-              <button class="example-btn" onclick="askSequence(['55세 남성인데 당뇨 있어. 가입 가능한 보험 있어?', '간편한건강보험 보장 내용이랑 가입 조건 알려줘', '이 상품 면책기간이랑 감액 조건 어떻게 돼?'])">당뇨 유병력자 → 간편심사 상품 상세 → 면책·감액</button>
+              <button class="example-btn" onclick="askSequence(['첫날부터 암보험 가입한 고객인데 갑상선암 진단받았어. 보험금 나와?', '소액암이랑 일반암 보험금 차이가 어떻게 돼?', '보험금 청구 절차 알려줘', '이 고객이 추가로 뉴스타트암보험도 가입되어 있는데 거기서도 보험금 나와?'])">갑상선암 진단 → 소액암 구분 → 청구 절차 → 중복 보장 확인</button>
             </div>
           </div>
           <div class="example-group">
-            <div class="group-label" style="color:var(--warning)">📞 보장 확인 & 청구 (멀티턴)</div>
+            <div class="group-label" style="color:var(--warning)">📞 시니어 종합 설계 상담</div>
             <div class="group-items">
-              <button class="example-btn" onclick="askSequence(['뉴스타트암보험 가입한 고객인데 보장 내용 확인해줘', '이 상품에서 소액암이랑 일반암 보험금 차이가 어떻게 돼?', '암 진단 후 보험금 청구 절차 알려줘'])">뉴스타트암보험 보장 → 소액암 구분 → 청구 절차</button>
+              <button class="example-btn" onclick="askSequence(['70세 아버지인데 사망보장이랑 치아보험 둘 다 알아보고 싶대', '건강해지는종신보험 보장 내용이랑 연금전환 조건 알려줘', '그리고 든든한실버치아보험은 이 나이에 가입 가능해? 보장 범위는?', '두 상품 합산 보험료 얼마쯤 나올까?'])">종신+치아 종합 → 연금전환 → 고령 가입 조건 → 합산 보험료</button>
             </div>
           </div>
           <div class="example-group">
-            <div class="group-label" style="color:var(--success)">💬 단건 질문</div>
+            <div class="group-label" style="color:var(--success)">📞 해약환급금 유형별 비교</div>
+            <div class="group-items">
+              <button class="example-btn" onclick="askSequence(['간편고지종신보험이 1종이랑 2종이 있던데 차이가 뭐야?', '채우는335 간편고지종신보험이랑은 또 뭐가 달라?', '해약환급금 미지급형이면 중도 해약 시 돈을 아예 못 받는 거야?'])">종신 1종/2종 → 상품 간 비교 → 해약환급금 안내</button>
+            </div>
+          </div>
+          <div class="example-group">
+            <div class="group-label" style="color:#e17055">💬 단건 질문</div>
             <div class="group-items">
               <button class="example-btn" onclick="askExample(this)">소방관 고객인데 직업 위험등급 어떻게 돼?</button>
-              <button class="example-btn" onclick="askExample(this)">종신보험 해약환급금 안내 시 꼭 말해야 하는 거 뭐야?</button>
-              <button class="example-btn" onclick="askExample(this)">약관에서 암 정의가 어떻게 나와 있어?</button>
+              <button class="example-btn" onclick="askExample(this)">골라담는간편건강보험 특약 종류 알려줘</button>
+              <button class="example-btn" onclick="askExample(this)">보험 계약 전 알릴 의무가 뭐야?</button>
             </div>
           </div>
         </div>
@@ -696,6 +759,21 @@
       <div class="trace-section">
         <h3>Pipeline Trace</h3>
         <div id="trace-items" class="no-data">파이프라인 실행 과정이 여기에 표시됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Catalog Modal -->
+  <div class="modal-overlay" id="product-modal" onclick="if(event.target===this)closeProductModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>판매 중인 상품 목록</h2>
+        <button class="modal-close" onclick="closeProductModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="product-grid" id="product-grid">
+          <div style="color:var(--text-dim)">로딩 중...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -741,6 +819,52 @@
 
     function getToolDisplay(name) {
       return (toolMeta[name] && toolMeta[name].shortName) || name;
+    }
+
+    /* ── 상품 목록 모달 ── */
+    let productsCache = null;
+
+    async function openProductModal() {
+      document.getElementById('product-modal').classList.add('open');
+      if (productsCache) { renderProducts(productsCache); return; }
+      try {
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        productsCache = data.products || [];
+        renderProducts(productsCache);
+      } catch {
+        document.getElementById('product-grid').innerHTML =
+          '<div style="color:var(--danger)">상품 목록을 불러올 수 없습니다.</div>';
+      }
+    }
+
+    function closeProductModal() {
+      document.getElementById('product-modal').classList.remove('open');
+    }
+
+    function renderProducts(products) {
+      const grid = document.getElementById('product-grid');
+      grid.innerHTML = '';
+      products.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.onclick = () => {
+          closeProductModal();
+          document.getElementById('query-input').value = p.name + ' 보장 내용 알려줘';
+          document.getElementById('query-input').focus();
+        };
+        const tags = [
+          `<span class="pc-tag category">${p.category}</span>`,
+          `<span class="pc-tag renewal">${p.renewal_type}</span>`,
+        ];
+        if (p.simplified) tags.push('<span class="pc-tag simplified">간편심사</span>');
+        card.innerHTML = `
+          <div class="pc-name">${p.name}</div>
+          <div class="pc-meta">${tags.join('')}<span>${p.age_range}</span></div>
+          <ul class="pc-highlights">${p.highlights.map(h => `<li>${h}</li>`).join('')}</ul>
+        `;
+        grid.appendChild(card);
+      });
     }
 
     /* ── 새 대화 ── */

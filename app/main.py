@@ -339,6 +339,29 @@ async def health():
     return {"status": "ok" if all_ok else "degraded", **checks}
 
 
+@app.get("/api/products")
+async def list_products():
+    """판매 중인 상품 카탈로그 — 프론트엔드 상품 목록 표시용."""
+    from app.tools.data import PRODUCTS
+    return {
+        "count": len(PRODUCTS),
+        "products": [
+            {
+                "code": p["code"],
+                "name": p["name"],
+                "category": p["category"],
+                "sales_status": p["sales_status"],
+                "channels": p["channels"],
+                "age_range": f"{p['min_age']}~{p['max_age']}세",
+                "renewal_type": p["renewal_type"],
+                "simplified": p.get("simplified_underwriting", False),
+                "highlights": p["highlights"][:2],
+            }
+            for p in PRODUCTS.values()
+        ],
+    }
+
+
 @app.get("/api/tools")
 async def list_tools():
     """도구 카탈로그 — 프론트엔드가 동적으로 표시명을 가져감."""
