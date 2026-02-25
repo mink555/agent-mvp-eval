@@ -1059,15 +1059,12 @@
           botEl.classList.add('rendered');
 
           const allTools = doneData.tools_used || [];
-          if (allTools.length > 0 || doneData.rag_used) {
+          if (allTools.length > 0) {
             const metaDiv = document.createElement('div');
             metaDiv.className = 'meta';
             allTools.forEach(t => {
               metaDiv.innerHTML += `<span class="tag tool">${getToolDisplay(t)}</span>`;
             });
-            if (doneData.rag_used) {
-              metaDiv.innerHTML += `<span class="tag rag">RAG</span>`;
-            }
             botEl.appendChild(metaDiv);
           }
 
