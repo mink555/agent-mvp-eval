@@ -483,8 +483,46 @@ async def debug_state(thread_id: str):
         return {"thread_id": thread_id, "found": False, "error": str(e)}
 
 
+# ── Admin API ─────────────────────────────────────────────────────────────────
+
+@app.get("/api/admin/tools")
+async def admin_list_tools():
+    """Admin UI용 상세 도구 카탈로그 — ToolCard 메타데이터 포함."""
+    from app.tool_search.tool_cards import get_card, REGISTRY as CARD_REGISTRY
+
+    registry = get_tool_registry()
+    tools = registry.get_all()
+
+    tool_modules: dict[str, str] = {}
+    from app.tools import _TOOL_MODULES
+    for mod in _TOOL_MODULES:
+        mod_name = mod.__name__.rsplit(".", 1)[-1]
+        for t in getattr(mod, "TOOLS", []):
+            tool_modules[t.name] = mod_name
+
+    result = []
+    for t in sorted(tools, key=lambda x: x.name):
+        card = get_card(t.name)
+        result.append({
+            "name": t.name,
+            "description": t.description[:100],
+            "module": tool_modules.get(t.name, "unknown"),
+            "has_card": card is not None,
+            "purpose": card.purpose if card else None,
+            "when_to_use": list(card.when_to_use) if card else [],
+            "when_not_to_use": list(card.when_not_to_use) if card else [],
+            "tags": list(card.tags) if card else [],
+        })
+    return {"count": len(result), "registry_version": registry.version, "tools": result}
+
+
 # ── UI ────────────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/admin/tools", response_class=HTMLResponse)
+async def admin_tools_page(request: Request):
+    return templates.TemplateResponse("admin_tools.html", {"request": request})

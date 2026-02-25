@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tool Registry — Admin</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #242836;
+      --surface3: #2e3347;
+      --border: #2d3142;
+      --text: #e4e6eb;
+      --text-dim: #8b8fa3;
+      --text-muted: #5c6078;
+      --accent: #6c5ce7;
+      --accent-light: #a29bfe;
+      --success: #00b894;
+      --success-dim: rgba(0,184,148,0.15);
+      --danger: #e17055;
+      --danger-dim: rgba(225,112,85,0.15);
+      --warning: #fdcb6e;
+      --warning-dim: rgba(253,203,110,0.15);
+      --info: #74b9ff;
+      --info-dim: rgba(116,185,255,0.15);
+      --radius: 10px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height:100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .header-left { display:flex; align-items:center; gap:14px; }
+    .header-left h1 { font-size:15px; font-weight:700; color:var(--accent-light); }
+    .header-left .badge {
+      font-size:11px; padding:3px 8px; border-radius:20px;
+      background:var(--accent); color:#fff; font-weight:600;
+    }
+    .back-btn {
+      padding:6px 14px; border:1px solid var(--border); border-radius:8px;
+      background:var(--surface2); color:var(--text-dim); font-size:12px;
+      cursor:pointer; text-decoration:none; display:flex; align-items:center; gap:6px;
+      transition: all 0.2s;
+    }
+    .back-btn:hover { border-color:var(--accent); color:var(--accent-light); }
+
+    .content { max-width:1200px; margin:0 auto; padding:20px 24px; }
+
+    .stats-row {
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:12px; margin-bottom:20px;
+    }
+    .stat-card {
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+      padding:16px 18px;
+    }
+    .stat-card .label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+    .stat-card .value { font-size:22px; font-weight:700; }
+    .stat-card .value.ok { color:var(--success); }
+    .stat-card .value.warn { color:var(--warning); }
+
+    .toolbar {
+      display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap;
+    }
+    .search-box {
+      flex:1; min-width:200px; padding:8px 14px; border:1px solid var(--border);
+      border-radius:8px; background:var(--surface2); color:var(--text);
+      font-size:13px; outline:none; transition:border-color 0.2s;
+    }
+    .search-box:focus { border-color:var(--accent); }
+    .search-box::placeholder { color:var(--text-muted); }
+
+    .btn {
+      padding:8px 16px; border:1px solid var(--border); border-radius:8px;
+      background:var(--surface2); color:var(--text-dim); font-size:12px;
+      font-weight:600; cursor:pointer; transition:all 0.2s;
+      display:flex; align-items:center; gap:6px; white-space:nowrap;
+    }
+    .btn:hover { border-color:var(--accent); color:var(--accent-light); }
+    .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .btn.primary:hover { background:#5b4bd5; }
+    .btn.danger { border-color:var(--danger); color:var(--danger); }
+    .btn.danger:hover { background:var(--danger-dim); }
+    .btn:disabled { opacity:0.4; pointer-events:none; }
+
+    .tool-table {
+      width:100%; border-collapse:collapse;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); overflow:hidden;
+    }
+    .tool-table th {
+      text-align:left; padding:10px 14px; font-size:11px;
+      text-transform:uppercase; letter-spacing:0.5px;
+      color:var(--text-muted); background:var(--surface2);
+      border-bottom:1px solid var(--border); position:sticky; top:58px; z-index:10;
+    }
+    .tool-table td {
+      padding:10px 14px; font-size:13px; border-bottom:1px solid var(--border);
+      vertical-align:top;
+    }
+    .tool-table tr:last-child td { border-bottom:none; }
+    .tool-table tr:hover td { background:rgba(108,92,231,0.04); }
+
+    .tool-name { font-weight:600; color:var(--accent-light); font-family:'SF Mono',monospace; font-size:12px; }
+    .tool-purpose { color:var(--text-dim); font-size:12px; margin-top:2px; }
+    .tag {
+      display:inline-block; padding:2px 7px; border-radius:4px;
+      font-size:10px; font-weight:600; margin:1px 2px;
+    }
+    .tag.card { background:var(--success-dim); color:var(--success); }
+    .tag.no-card { background:var(--warning-dim); color:var(--warning); }
+    .tag.module { background:var(--info-dim); color:var(--info); }
+
+    .action-btns { display:flex; gap:6px; }
+    .action-btn {
+      padding:4px 10px; border:1px solid var(--border); border-radius:6px;
+      background:transparent; font-size:11px; cursor:pointer;
+      color:var(--text-dim); transition:all 0.2s;
+    }
+    .action-btn:hover { border-color:var(--text-dim); color:var(--text); }
+    .action-btn.del { color:var(--danger); }
+    .action-btn.del:hover { background:var(--danger-dim); border-color:var(--danger); }
+
+    .modal-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+      z-index:100; align-items:center; justify-content:center;
+    }
+    .modal-overlay.show { display:flex; }
+    .modal {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:24px; width:90%; max-width:480px;
+    }
+    .modal h3 { font-size:15px; margin-bottom:14px; }
+    .modal p { font-size:13px; color:var(--text-dim); margin-bottom:16px; line-height:1.5; }
+    .modal .modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+
+    .modal label { display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; }
+    .modal input, .modal select {
+      width:100%; padding:8px 12px; border:1px solid var(--border);
+      border-radius:8px; background:var(--surface2); color:var(--text);
+      font-size:13px; margin-bottom:14px; outline:none;
+    }
+    .modal input:focus, .modal select:focus { border-color:var(--accent); }
+
+    .toast {
+      position:fixed; bottom:24px; right:24px; padding:12px 20px;
+      border-radius:8px; font-size:13px; font-weight:500;
+      z-index:200; transform:translateY(100px); opacity:0;
+      transition:all 0.3s ease;
+    }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .toast.success { background:var(--success); color:#fff; }
+    .toast.error { background:var(--danger); color:#fff; }
+    .toast.info { background:var(--info); color:#000; }
+
+    .empty-state {
+      text-align:center; padding:48px 20px; color:var(--text-muted); font-size:13px;
+    }
+
+    .when-to-use {
+      font-size:11px; color:var(--text-muted); max-height:60px;
+      overflow:hidden; cursor:pointer; transition:max-height 0.3s;
+    }
+    .when-to-use.expanded { max-height:500px; }
+    .when-to-use span { display:block; padding:1px 0; }
+
+    @media (max-width:768px) {
+      .content { padding:12px; }
+      .stats-row { grid-template-columns:1fr 1fr; }
+      .tool-table { font-size:12px; }
+      .tool-table th, .tool-table td { padding:8px 10px; }
+      .col-tags, .col-when { display:none; }
+      header { padding:10px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>Tool Registry Admin</h1>
+      <span class="badge" id="tool-count">—</span>
+    </div>
+    <a href="/" class="back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      챗봇으로 돌아가기
+    </a>
+  </header>
+
+  <div class="content">
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card"><div class="label">등록 도구</div><div class="value" id="s-tools">—</div></div>
+      <div class="stat-card"><div class="label">ChromaDB 벡터</div><div class="value" id="s-vectors">—</div></div>
+      <div class="stat-card"><div class="label">Registry 버전</div><div class="value" id="s-version">—</div></div>
+      <div class="stat-card"><div class="label">서비스 상태</div><div class="value" id="s-status">—</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input class="search-box" id="search" type="text" placeholder="도구 이름·설명·태그 검색...">
+      <button class="btn primary" onclick="openReloadModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        모듈 리로드
+      </button>
+      <button class="btn" onclick="refreshAll()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+        새로고침
+      </button>
+    </div>
+
+    <table class="tool-table">
+      <thead>
+        <tr>
+          <th style="width:24px">#</th>
+          <th>도구명</th>
+          <th class="col-tags">태그</th>
+          <th class="col-when">when_to_use 예시</th>
+          <th>카드</th>
+          <th style="width:90px">액션</th>
+        </tr>
+      </thead>
+      <tbody id="tool-body"></tbody>
+    </table>
+    <div class="empty-state" id="empty" style="display:none">검색 결과가 없습니다.</div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal">
+      <h3>도구 해제 확인</h3>
+      <p><strong id="del-name" style="color:var(--danger)"></strong> 도구를 런타임에서 해제합니다.<br>ChromaDB 벡터도 즉시 삭제됩니다. 모듈 리로드로 복원할 수 있습니다.</p>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('delete-modal')">취소</button>
+        <button class="btn danger" id="del-confirm" onclick="confirmDelete()">해제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reload Module Modal -->
+  <div class="modal-overlay" id="reload-modal">
+    <div class="modal">
+      <h3>모듈 핫리로드</h3>
+      <p>선택한 모듈의 도구를 서버 재시작 없이 재등록합니다.<br>코드 변경사항도 반영됩니다.</p>
+      <label for="module-select">모듈 선택</label>
+      <select id="module-select">
+        <option value="product">product</option>
+        <option value="premium">premium</option>
+        <option value="coverage">coverage</option>
+        <option value="underwriting">underwriting</option>
+        <option value="compliance">compliance</option>
+        <option value="claims">claims</option>
+        <option value="customer_db">customer_db</option>
+        <option value="rag_tools">rag_tools</option>
+      </select>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('reload-modal')">취소</button>
+        <button class="btn primary" id="reload-confirm" onclick="confirmReload()">리로드</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tool Detail Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal" style="max-width:600px">
+      <h3 id="detail-title"></h3>
+      <div id="detail-body" style="font-size:13px;line-height:1.6;color:var(--text-dim);max-height:60vh;overflow-y:auto"></div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="btn" onclick="closeModal('detail-modal')">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+let allTools = [];
+let toolCards = {};
+let deleteTarget = '';
+
+async function fetchHealth() {
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    document.getElementById('s-tools').textContent = d.tools;
+    document.getElementById('s-tools').className = 'value ok';
+    document.getElementById('s-vectors').textContent = d.chromadb_tools;
+    document.getElementById('s-vectors').className = 'value ' + (d.chromadb_tools === 'unavailable' ? 'warn' : 'ok');
+    document.getElementById('s-version').textContent = 'v' + d.registry_version;
+    document.getElementById('s-version').className = 'value';
+    const st = document.getElementById('s-status');
+    st.textContent = d.status === 'ok' ? 'OK' : 'Degraded';
+    st.className = 'value ' + (d.status === 'ok' ? 'ok' : 'warn');
+  } catch(e) {
+    document.getElementById('s-status').textContent = 'Error';
+    document.getElementById('s-status').className = 'value warn';
+  }
+}
+
+async function fetchTools() {
+  try {
+    const r = await fetch('/api/admin/tools');
+    const d = await r.json();
+    allTools = d.tools;
+    toolCards = {};
+    for (const t of allTools) toolCards[t.name] = t;
+    document.getElementById('tool-count').textContent = d.count + '개';
+    renderTable(allTools);
+  } catch(e) {
+    showToast('도구 목록 로드 실패', 'error');
+  }
+}
+
+function renderTable(tools) {
+  const tbody = document.getElementById('tool-body');
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = q
+    ? tools.filter(t =>
+        t.name.includes(q) ||
+        (t.purpose||'').toLowerCase().includes(q) ||
+        (t.tags||[]).some(tag => tag.includes(q)) ||
+        (t.module||'').includes(q)
+      )
+    : tools;
+
+  document.getElementById('empty').style.display = filtered.length ? 'none' : 'block';
+
+  tbody.innerHTML = filtered.map((t, i) => `
+    <tr>
+      <td style="color:var(--text-muted);font-size:11px">${i+1}</td>
+      <td>
+        <div class="tool-name">${t.name}</div>
+        <div class="tool-purpose">${t.purpose || t.description || ''}</div>
+      </td>
+      <td class="col-tags">
+        ${(t.tags||[]).map(tag => `<span class="tag module">${tag}</span>`).join('')}
+        ${t.module ? `<span class="tag module" style="background:var(--surface3);color:var(--text-dim)">${t.module}</span>` : ''}
+      </td>
+      <td class="col-when">
+        <div class="when-to-use" onclick="this.classList.toggle('expanded')">
+          ${(t.when_to_use||[]).slice(0,3).map(w => `<span>&bull; ${w}</span>`).join('')}
+          ${(t.when_to_use||[]).length > 3 ? `<span style="color:var(--accent-light)">+${t.when_to_use.length-3}개 더...</span>` : ''}
+        </div>
+      </td>
+      <td>
+        <span class="tag ${t.has_card ? 'card' : 'no-card'}">${t.has_card ? 'Card' : 'No Card'}</span>
+      </td>
+      <td>
+        <div class="action-btns">
+          <button class="action-btn" onclick="showDetail('${t.name}')" title="상세보기">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </button>
+          <button class="action-btn del" onclick="openDeleteModal('${t.name}')" title="해제">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function showDetail(name) {
+  const t = toolCards[name];
+  if (!t) return;
+  document.getElementById('detail-title').textContent = t.name;
+  let html = `<div style="margin-bottom:12px"><strong>Purpose:</strong> ${t.purpose||t.description||'—'}</div>`;
+  if (t.module) html += `<div style="margin-bottom:12px"><strong>Module:</strong> <span class="tag module">${t.module}</span></div>`;
+  html += `<div style="margin-bottom:12px"><strong>Card:</strong> <span class="tag ${t.has_card?'card':'no-card'}">${t.has_card?'Yes':'No'}</span></div>`;
+  if (t.tags && t.tags.length) {
+    html += `<div style="margin-bottom:12px"><strong>Tags:</strong> ${t.tags.map(tag=>`<span class="tag module">${tag}</span>`).join(' ')}</div>`;
+  }
+  if (t.when_to_use && t.when_to_use.length) {
+    html += `<div style="margin-bottom:12px"><strong>When to use (${t.when_to_use.length}):</strong><ul style="margin:4px 0 0 16px;list-style:disc">`;
+    t.when_to_use.forEach(w => html += `<li style="margin:2px 0">${w}</li>`);
+    html += `</ul></div>`;
+  }
+  if (t.when_not_to_use && t.when_not_to_use.length) {
+    html += `<div style="margin-bottom:12px"><strong>When NOT to use (${t.when_not_to_use.length}):</strong><ul style="margin:4px 0 0 16px;list-style:disc;color:var(--danger)">`;
+    t.when_not_to_use.forEach(w => html += `<li style="margin:2px 0">${w}</li>`);
+    html += `</ul></div>`;
+  }
+  document.getElementById('detail-body').innerHTML = html;
+  document.getElementById('detail-modal').classList.add('show');
+}
+
+function openDeleteModal(name) {
+  deleteTarget = name;
+  document.getElementById('del-name').textContent = name;
+  document.getElementById('delete-modal').classList.add('show');
+}
+
+async function confirmDelete() {
+  const btn = document.getElementById('del-confirm');
+  btn.disabled = true; btn.textContent = '처리 중...';
+  try {
+    const r = await fetch(`/api/tools/${deleteTarget}`, {method:'DELETE'});
+    const d = await r.json();
+    if (r.ok) {
+      showToast(`${deleteTarget} 해제 완료 (${d.tools_count}개 남음)`, 'success');
+      closeModal('delete-modal');
+      refreshAll();
+    } else {
+      showToast(d.detail || '해제 실패', 'error');
+    }
+  } catch(e) {
+    showToast('요청 실패: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '해제';
+  }
+}
+
+function openReloadModal() {
+  document.getElementById('reload-modal').classList.add('show');
+}
+
+async function confirmReload() {
+  const mod = document.getElementById('module-select').value;
+  const btn = document.getElementById('reload-confirm');
+  btn.disabled = true; btn.textContent = '리로드 중...';
+  try {
+    const r = await fetch(`/api/tools/reload-module/${mod}`, {method:'POST'});
+    const d = await r.json();
+    if (r.ok) {
+      showToast(`${mod} 모듈 리로드 완료 — ${d.registered.length}개 도구`, 'success');
+      closeModal('reload-modal');
+      refreshAll();
+    } else {
+      showToast(d.detail || '리로드 실패', 'error');
+    }
+  } catch(e) {
+    showToast('요청 실패: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '리로드';
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+async function refreshAll() {
+  await Promise.all([fetchHealth(), fetchTools()]);
+}
+
+document.getElementById('search').addEventListener('input', () => renderTable(allTools));
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('show'); });
+});
+
+refreshAll();
+setInterval(fetchHealth, 10000);
+</script>
+</body>
+</html>
