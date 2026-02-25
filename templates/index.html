@@ -1030,7 +1030,7 @@
                   setStageComplete(pipelineEl, payload.node, payload.duration_ms);
                   break;
                 case 'tools_selected':
-                  tools_selected = payload.tools || [];
+                  tools_selected = [...new Set(payload.tools || [])];
                   showToolBadges(pipelineEl, tools_selected, activeBadges);
                   updateToolPanel(tools_selected);
                   break;
@@ -1090,7 +1090,7 @@
           botEl.innerHTML = renderMd(finalText);
           botEl.classList.add('rendered');
 
-          const allTools = doneData.tools_used || [];
+          const allTools = [...new Set(doneData.tools_used || [])];
           if (allTools.length > 0) {
             const metaDiv = document.createElement('div');
             metaDiv.className = 'meta';
@@ -1100,11 +1100,7 @@
             botEl.appendChild(metaDiv);
           }
 
-          if (allTools.length > 0) {
-            updateToolPanel(allTools);
-          } else {
-            updateToolPanel([]);
-          }
+          updateToolPanel(allTools);
           renderTrace(doneData.trace || []);
         }
       } catch (e) {

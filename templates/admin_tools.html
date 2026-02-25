@@ -251,8 +251,115 @@
     .eval-section .section-desc {
       font-size:12px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;
     }
-    .search-test-row { display:flex; gap:8px; margin-bottom:14px; }
+    .search-test-row { display:flex; gap:8px; margin-bottom:8px; }
     .search-test-row input { flex:1; margin-bottom:0; }
+
+    /* ── Compare Flow ── */
+    .flow-steps {
+      display:flex; gap:0; margin-bottom:18px; position:relative;
+    }
+    .flow-step {
+      flex:1; text-align:center; padding:10px 8px 8px; position:relative;
+      border:1px solid var(--border); background:var(--surface2); cursor:default;
+      transition:all 0.2s;
+    }
+    .flow-step:first-child { border-radius:10px 0 0 10px; }
+    .flow-step:last-child { border-radius:0 10px 10px 0; }
+    .flow-step .fs-num {
+      width:22px; height:22px; border-radius:50%; font-size:11px; font-weight:700;
+      display:inline-flex; align-items:center; justify-content:center;
+      background:var(--surface3); color:var(--text-muted); margin-bottom:3px;
+    }
+    .flow-step .fs-label { font-size:11px; font-weight:600; color:var(--text-muted); }
+    .flow-step .fs-sub { font-size:9px; color:var(--text-dim); margin-top:1px; }
+    .flow-step.active { border-color:var(--accent); background:rgba(108,92,231,0.08); }
+    .flow-step.active .fs-num { background:var(--accent); color:#fff; }
+    .flow-step.active .fs-label { color:var(--accent-light); }
+    .flow-step.done { border-color:var(--success); background:rgba(0,184,148,0.06); }
+    .flow-step.done .fs-num { background:var(--success); color:#fff; }
+    .flow-step.done .fs-label { color:var(--success); }
+    .flow-arrow {
+      display:flex; align-items:center; color:var(--text-dim); font-size:16px;
+      padding:0 2px; flex-shrink:0;
+    }
+
+    .cmp-table { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
+    .cmp-table th {
+      text-align:left; padding:8px 10px; font-weight:700; font-size:11px;
+      color:var(--text-muted); border-bottom:2px solid var(--border); white-space:nowrap;
+    }
+    .cmp-table td { padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .cmp-table tr:last-child td { border-bottom:none; }
+    .cmp-table .q-cell { max-width:240px; word-break:break-word; line-height:1.4; }
+    .cmp-rank {
+      display:inline-flex; align-items:center; justify-content:center;
+      min-width:24px; height:24px; border-radius:6px; font-weight:700; font-size:11px;
+    }
+    .cmp-rank.r1 { background:var(--success); color:#fff; }
+    .cmp-rank.r2 { background:rgba(0,184,148,0.25); color:var(--success); }
+    .cmp-rank.r3 { background:rgba(253,203,110,0.25); color:var(--warning); }
+    .cmp-rank.miss { background:var(--danger-dim); color:var(--danger); }
+    .cmp-delta { font-weight:700; font-size:12px; text-align:center; }
+    .cmp-delta.up { color:var(--success); }
+    .cmp-delta.down { color:var(--danger); }
+    .cmp-delta.same { color:var(--text-muted); }
+    .cmp-score { font-family:'SF Mono',monospace; font-size:11px; color:var(--text-dim); }
+
+    .cmp-summary {
+      display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;
+    }
+    .cmp-summary-card {
+      background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+      padding:10px 14px; text-align:center; flex:1; min-width:70px;
+    }
+    .cmp-summary-card .cs-label { font-size:10px; color:var(--text-muted); font-weight:600; }
+    .cmp-summary-card .cs-value { font-size:20px; font-weight:800; margin-top:2px; }
+    .cmp-nodata { color:var(--text-muted); font-size:12px; text-align:center; padding:20px 0; }
+    .cmp-gen-btn {
+      display:inline-flex; align-items:center; gap:6px; padding:8px 16px;
+      border-radius:8px; font-weight:600; cursor:pointer; font-size:12px;
+      background:linear-gradient(135deg,var(--accent),#a29bfe); color:#fff; border:none;
+      transition:opacity 0.15s;
+    }
+    .cmp-gen-btn:hover { opacity:0.85; }
+    .cmp-gen-btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .cmp-gen-btn .spinner {
+      width:14px; height:14px; border:2px solid rgba(255,255,255,0.3);
+      border-top-color:#fff; border-radius:50%; animation:spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .cmp-phase-label {
+      font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px;
+      display:inline-block;
+    }
+    .cmp-phase-label.as-is { background:rgba(108,92,231,0.15); color:var(--accent-light); }
+    .cmp-phase-label.to-be { background:rgba(0,184,148,0.15); color:var(--success); }
+
+    .diff-box {
+      background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+      padding:12px 16px; margin-bottom:14px; font-size:12px;
+    }
+    .diff-box .diff-title { font-weight:700; font-size:12px; margin-bottom:8px; color:var(--text); }
+    .diff-item { margin-bottom:6px; line-height:1.5; }
+    .diff-item .diff-field { font-weight:600; color:var(--accent-light); }
+    .diff-added { color:var(--success); }
+    .diff-removed { color:var(--danger); text-decoration:line-through; }
+    .diff-none { color:var(--text-muted); font-style:italic; }
+
+    .analysis-box {
+      background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+      padding:14px 16px; margin-top:14px; font-size:12px; line-height:1.7;
+    }
+    .analysis-box .ab-title { font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+    .analysis-box .ab-model { font-size:10px; color:var(--text-dim); font-weight:400; }
+
+    .verdict-badge {
+      display:inline-block; padding:4px 12px; border-radius:20px; font-weight:700; font-size:12px;
+      margin-bottom:10px;
+    }
+    .verdict-badge.positive { background:rgba(0,184,148,0.15); color:var(--success); }
+    .verdict-badge.negative { background:rgba(255,107,107,0.15); color:var(--danger); }
+    .verdict-badge.neutral { background:rgba(253,203,110,0.15); color:var(--warning); }
 
     .search-result {
       display:flex; align-items:center; gap:10px; padding:8px 12px;
@@ -597,38 +704,43 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             이 탭은 읽기 전용입니다. 여기서 뭘 해도 챗봇에 영향 없습니다.
           </div>
-          <!-- 1. 실시간 쿼리 검색 -->
-          <div class="eval-section">
-            <h4><span class="step-num">1</span> 실시간 쿼리 테스트</h4>
-            <div class="section-desc">
-              아무 질문이나 입력하면, 챗봇이 어떤 도구를 선택할지 미리 확인합니다. 현재 도구가 초록색으로 표시됩니다.
+
+          <!-- 플로우 인디케이터 -->
+          <div class="flow-steps" id="flow-steps">
+            <div class="flow-step active" id="fs-1">
+              <div class="fs-num">1</div>
+              <div class="fs-label">현재 상태 측정</div>
+              <div class="fs-sub">AI 질문 생성 + As-Is 검색</div>
             </div>
-            <div class="search-test-row">
-              <input id="eval-query" type="text" placeholder="예: 보험료 좀 알아봐줘">
-              <button class="btn primary" onclick="runSearchTest()">검색</button>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step" id="fs-2">
+              <div class="fs-num">2</div>
+              <div class="fs-label">ToolCard 수정</div>
+              <div class="fs-sub">편집 탭에서 수정 → 저장</div>
             </div>
-            <div id="eval-search-results"></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step" id="fs-3">
+              <div class="fs-num">3</div>
+              <div class="fs-label">전후 비교 리포트</div>
+              <div class="fs-sub">정량 + 정성 분석</div>
+            </div>
           </div>
 
-          <!-- 2. 배치 Recall 평가 -->
-          <div class="eval-section">
-            <h4><span class="step-num">2</span> 자가 성능 평가</h4>
-            <div class="section-desc">
-              이 도구에 등록된 발화 예시를 전부 검색해봅니다. "100%"면 모든 예시가 정확히 이 도구로 연결된다는 뜻입니다.
+          <!-- Step 1: As-Is 스냅샷 -->
+          <div id="eval-step1">
+            <div class="section-desc" style="margin-bottom:10px">
+              AI가 이 도구에 맞는 테스트 질문을 자동 생성하고, 현재 검색 순위를 측정합니다.
             </div>
-            <button class="btn" id="btn-batch" onclick="runBatchEval()">배치 평가 실행</button>
-            <div id="eval-recall-bar" style="margin-top:12px"></div>
-            <div id="eval-batch-details" style="margin-top:8px"></div>
+            <button class="cmp-gen-btn" id="btn-gen-queries" onclick="startAsIsSnapshot()">
+              <span id="gen-spinner" style="display:none" class="spinner"></span>
+              현재 상태 측정 시작
+            </button>
+            <div id="asis-result" style="margin-top:14px"></div>
           </div>
 
-          <!-- 3. LLM Judge -->
-          <div class="eval-section">
-            <h4><span class="step-num">3</span> AI 개선 제안</h4>
-            <div class="section-desc">
-              2단계에서 실패한 쿼리가 있으면, AI가 원인을 분석하고 어떻게 고치면 되는지 구체적으로 제안합니다.
-            </div>
-            <button class="btn" id="btn-judge" onclick="runLlmJudge()" disabled>LLM 분석 실행</button>
-            <div id="eval-judge-result" style="margin-top:12px"></div>
+          <!-- Step 3: 비교 리포트 (step2는 편집 탭 이동이라 별도 영역 불필요) -->
+          <div id="eval-step3" style="display:none">
+            <div id="cmp-report"></div>
           </div>
         </div>
       </div>
@@ -963,8 +1075,13 @@ async function publishCard() {
     const d = await r.json();
     if (r.ok) {
       showToast(`${editName} v${d.version} 반영 완료 — 챗봇에 적용됨`, 'success');
-      closeModal('edit-modal');
       refreshAll();
+      if (cmpAsIs && cmpQueries.length) {
+        switchEditTab('eval');
+        setTimeout(() => runToBeAndCompare(), 500);
+      } else {
+        closeModal('edit-modal');
+      }
     } else {
       showToast(d.detail || '반영 실패', 'error');
     }
@@ -1002,6 +1119,12 @@ function switchEditTab(tab) {
   document.getElementById('tab-history').style.display = tab === 'history' ? '' : 'none';
   document.getElementById('tab-eval').style.display = tab === 'eval' ? '' : 'none';
   if (tab === 'history') loadHistory();
+  if (tab === 'eval') {
+    if (!cmpAsIs) {
+      setFlowStep(1);
+      document.getElementById('eval-step3').style.display = 'none';
+    }
+  }
 }
 
 async function loadHistory() {
@@ -1131,136 +1254,300 @@ function renderMd(text) {
   return h;
 }
 
-// ── Quick Eval ────────────────────────────────────────────
+// ── Quick Eval — Unified Compare Flow ─────────────────────
 
-let lastBatchFailures = [];
+let cmpQueries = [];
+let cmpAsIs = null;
+let cmpToBe = null;
+let asIsCardSnapshot = null; // ToolCard snapshot at As-Is time
 
-async function runSearchTest() {
-  const query = document.getElementById('eval-query').value.trim();
-  if (!query) return;
-
-  const container = document.getElementById('eval-search-results');
-  container.innerHTML = '<div class="spinner"></div> 검색 중...';
-
-  try {
-    const r = await fetch('/api/admin/eval/search', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ query, top_k: 5 }),
-    });
-    const d = await r.json();
-
-    container.innerHTML = d.results.map((hit, i) => {
-      const isTarget = hit.name === editName;
-      const cls = isTarget ? 'is-target' : '';
-      const pct = Math.round(hit.score * 100);
-      return `<div class="search-result ${cls}">
-        <div class="rank">${i + 1}</div>
-        <div class="sr-name">${hit.name}</div>
-        <div class="sr-score-wrap">
-          <div class="sr-score">${(hit.score * 100).toFixed(1)}%</div>
-          <div class="sr-bar"><div class="sr-bar-fill" style="width:${pct}%"></div></div>
-        </div>
-        <div class="sr-desc">${escHtml(hit.description)}</div>
-        ${isTarget ? '<span style="color:var(--success);font-weight:700;white-space:nowrap">← 현재 도구</span>' : ''}
-      </div>`;
-    }).join('') || '<div style="color:var(--text-muted);font-size:12px">결과 없음</div>';
-  } catch(e) {
-    container.innerHTML = `<div style="color:var(--danger);font-size:12px">검색 실패: ${e.message}</div>`;
+function setFlowStep(step) {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('fs-' + i);
+    el.className = 'flow-step' + (i < step ? ' done' : i === step ? ' active' : '');
   }
 }
 
-async function runBatchEval() {
-  const btn = document.getElementById('btn-batch');
-  const recallBar = document.getElementById('eval-recall-bar');
-  const details = document.getElementById('eval-batch-details');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 평가 중...';
-  recallBar.innerHTML = ''; details.innerHTML = '';
-  lastBatchFailures = [];
+function captureCardState() {
+  return {
+    purpose: document.getElementById('edit-purpose').value.trim(),
+    when_to_use: [...editData.when_to_use],
+    when_not_to_use: [...editData.when_not_to_use],
+    tags: [...editData.tags],
+  };
+}
 
-  try {
-    const r = await fetch(`/api/admin/eval/batch/${editName}`, { method: 'POST' });
-    const d = await r.json();
+function computeCardDiff(before, after) {
+  const diff = {};
+  if (before.purpose !== after.purpose) {
+    diff.purpose = { before: before.purpose, after: after.purpose };
+  }
+  const diffList = (key) => {
+    const added = after[key].filter(x => !before[key].includes(x));
+    const removed = before[key].filter(x => !after[key].includes(x));
+    if (added.length || removed.length) diff[key] = { added, removed };
+  };
+  diffList('when_to_use');
+  diffList('when_not_to_use');
+  diffList('tags');
+  return diff;
+}
 
-    if (!r.ok) { showToast(d.detail || '평가 실패', 'error'); return; }
+function renderDiffBox(diff) {
+  if (!Object.keys(diff).length) return '<div class="diff-box"><span class="diff-none">변경 사항 없음</span></div>';
 
-    const rc = (v) => v >= 0.9 ? 'good' : v >= 0.7 ? 'ok' : 'bad';
-    recallBar.innerHTML = `
-      <div class="recall-bar">
-        <div class="recall-card">
-          <div class="rc-label">1위 정확도</div>
-          <div class="rc-value ${rc(d.recall_at_1)}">${(d.recall_at_1 * 100).toFixed(0)}%</div>
-          <div class="rc-sub">검색 1위에 나오는 비율</div>
-        </div>
-        <div class="recall-card">
-          <div class="rc-label">Top-3 포함</div>
-          <div class="rc-value ${rc(d.recall_at_3)}">${(d.recall_at_3 * 100).toFixed(0)}%</div>
-          <div class="rc-sub">상위 3개 안에 드는 비율</div>
-        </div>
-        <div class="recall-card">
-          <div class="rc-label">Top-5 포함</div>
-          <div class="rc-value ${rc(d.recall_at_5)}">${(d.recall_at_5 * 100).toFixed(0)}%</div>
-          <div class="rc-sub">상위 5개 안에 드는 비율</div>
-        </div>
-        <div class="recall-card">
-          <div class="rc-label">테스트 수</div>
-          <div class="rc-value" style="color:var(--text)">${d.total}건</div>
-          <div class="rc-sub">등록된 발화 예시 수</div>
-        </div>
-      </div>`;
+  const fieldLabels = {
+    purpose: 'Purpose (목적)',
+    when_to_use: 'When to Use (발화 예시)',
+    when_not_to_use: 'When NOT to Use (제외 예시)',
+    tags: 'Tags (태그)',
+  };
 
-    lastBatchFailures = d.details.filter(x => !x.pass_at_3);
-
-    details.innerHTML = d.details.map(item => {
-      const pass = item.pass_at_3;
-      const topNames = (item.top_hits || []).slice(0, 3).map(h => h.name).join(', ');
-      return `<div class="batch-detail ${pass ? 'pass' : 'fail'}">
-        <div class="bd-icon">${pass ? '✓' : '✗'}</div>
-        <div class="bd-query">${escHtml(item.query)}</div>
-        <div class="bd-rank">${item.rank ? item.rank + '위' : '—'}</div>
-        <div class="bd-top" title="${topNames}">${topNames}</div>
-      </div>`;
-    }).join('');
-
-    document.getElementById('btn-judge').disabled = lastBatchFailures.length === 0;
-    if (lastBatchFailures.length === 0) {
-      document.getElementById('eval-judge-result').innerHTML =
-        '<div style="color:var(--success);font-size:12px;padding:8px">모든 쿼리가 Top-3에 포함됩니다. LLM 분석이 필요 없습니다.</div>';
+  let html = '<div class="diff-box"><div class="diff-title">ToolCard 변경 내역</div>';
+  for (const [field, changes] of Object.entries(diff)) {
+    html += `<div class="diff-item"><span class="diff-field">${fieldLabels[field] || field}</span><br>`;
+    if (field === 'purpose') {
+      html += `<span class="diff-removed">${escHtml(changes.before)}</span><br>`;
+      html += `<span class="diff-added">${escHtml(changes.after)}</span>`;
     } else {
-      document.getElementById('eval-judge-result').innerHTML =
-        `<div style="color:var(--warning);font-size:12px;padding:8px">${lastBatchFailures.length}건 실패 — LLM 분석을 실행하세요.</div>`;
+      if (changes.removed?.length) {
+        changes.removed.forEach(v => html += `<span class="diff-removed">− ${escHtml(v)}</span><br>`);
+      }
+      if (changes.added?.length) {
+        changes.added.forEach(v => html += `<span class="diff-added">+ ${escHtml(v)}</span><br>`);
+      }
     }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+async function startAsIsSnapshot() {
+  const btn = document.getElementById('btn-gen-queries');
+  const spinner = document.getElementById('gen-spinner');
+  const container = document.getElementById('asis-result');
+  btn.disabled = true;
+  spinner.style.display = '';
+  cmpAsIs = null; cmpToBe = null;
+
+  container.innerHTML = '<div class="cmp-nodata">AI가 테스트 질문을 생성하고 있습니다… (5~15초)</div>';
+
+  try {
+    const gRes = await fetch('/api/admin/eval/generate-queries', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ tool_name: editName, count: 8 }),
+    });
+    const gData = await gRes.json();
+    if (!gRes.ok) throw new Error(gData.detail || '질문 생성 실패');
+    cmpQueries = gData.queries;
+
+    container.innerHTML = '<div class="cmp-nodata">생성된 질문으로 현재 상태(As-Is) 측정 중…</div>';
+
+    const sRes = await fetch('/api/admin/eval/bulk-search', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ tool_name: editName, queries: cmpQueries }),
+    });
+    cmpAsIs = await sRes.json();
+    asIsCardSnapshot = captureCardState();
+
+    renderAsIsTable(container);
+    setFlowStep(2);
   } catch(e) {
-    recallBar.innerHTML = `<div style="color:var(--danger);font-size:12px">평가 실패: ${e.message}</div>`;
+    container.innerHTML = `<div style="color:var(--danger);font-size:12px">실패: ${e.message}</div>`;
   } finally {
-    btn.disabled = false; btn.textContent = '배치 평가 실행';
+    btn.disabled = false; spinner.style.display = 'none';
   }
 }
 
-async function runLlmJudge() {
-  if (!lastBatchFailures.length) return;
+function rankBadge(rank) {
+  if (!rank) return '<span class="cmp-rank miss">—</span>';
+  const cls = rank === 1 ? 'r1' : rank <= 3 ? 'r2' : rank <= 5 ? 'r3' : 'miss';
+  return `<span class="cmp-rank ${cls}">${rank}위</span>`;
+}
 
-  const btn = document.getElementById('btn-judge');
-  const container = document.getElementById('eval-judge-result');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> LLM 분석 중...';
-  container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px"><span class="spinner"></span> LLM이 실패 원인을 분석하고 있습니다... (10~30초)</div>';
+function renderAsIsTable(container) {
+  const results = cmpAsIs.results;
+  const n = results.length;
+  const r1 = results.filter(r => r.rank === 1).length;
+  const in3 = results.filter(r => r.rank && r.rank <= 3).length;
+
+  let html = `
+    <div class="cmp-summary">
+      <div class="cmp-summary-card">
+        <div class="cs-label">1위 정확도</div>
+        <div class="cs-value" style="color:var(--accent-light)">${Math.round(r1/n*100)}%</div>
+      </div>
+      <div class="cmp-summary-card">
+        <div class="cs-label">Top-3 포함</div>
+        <div class="cs-value" style="color:var(--accent-light)">${Math.round(in3/n*100)}%</div>
+      </div>
+      <div class="cmp-summary-card">
+        <div class="cs-label">테스트 수</div>
+        <div class="cs-value" style="color:var(--text)">${n}건</div>
+      </div>
+    </div>
+    <div style="font-size:12px;margin-bottom:12px;padding:12px 14px;background:rgba(108,92,231,0.08);border:1px solid rgba(108,92,231,0.2);border-radius:10px;line-height:1.7">
+      <div style="font-weight:700;color:var(--accent-light);margin-bottom:6px">다음 단계: ToolCard 수정</div>
+      <div style="color:var(--text-dim);font-size:11px;margin-bottom:8px">
+        아래 항목 중 원하는 것을 수정하면 검색 성능이 달라집니다:
+      </div>
+      <div style="font-size:11px;color:var(--text);line-height:1.8">
+        <b style="color:var(--success)">When to Use</b> — 이 도구를 써야 하는 질문 예시 추가/삭제<br>
+        <b style="color:var(--danger)">When NOT to Use</b> — 다른 도구와 헷갈리는 표현 추가<br>
+        <b style="color:var(--warning)">Tags</b> — 검색 키워드 태그 추가/삭제<br>
+        <b>Purpose</b> — 도구 목적 문장 수정
+      </div>
+      <button class="btn primary" style="margin-top:10px;font-size:12px" onclick="switchEditTab('edit')">
+        편집 탭으로 이동 →
+      </button>
+      <div style="font-size:10px;color:var(--text-dim);margin-top:6px">
+        수정 후 「저장 &amp; 즉시 반영」을 누르면 자동으로 비교 리포트가 생성됩니다.
+      </div>
+    </div>
+    <table class="cmp-table">
+      <thead><tr><th>테스트 질문 (AI 생성)</th><th><span class="cmp-phase-label as-is">As-Is</span> 순위</th><th>점수</th></tr></thead>
+      <tbody>${results.map(r => `<tr>
+        <td class="q-cell">${escHtml(r.query)}</td>
+        <td>${rankBadge(r.rank)}</td>
+        <td><span class="cmp-score">${r.score ? (r.score*100).toFixed(1)+'%' : '—'}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  container.innerHTML = html;
+}
+
+async function runToBeAndCompare() {
+  if (!cmpAsIs || !cmpQueries.length) return;
+
+  const report = document.getElementById('cmp-report');
+  document.getElementById('eval-step3').style.display = '';
+  report.innerHTML = '<div class="cmp-nodata">변경 후(To-Be) 재검색 중…</div>';
+  setFlowStep(3);
 
   try {
-    const r = await fetch('/api/admin/eval/judge', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
+    const sRes = await fetch('/api/admin/eval/bulk-search', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ tool_name: editName, queries: cmpQueries }),
+    });
+    cmpToBe = await sRes.json();
+
+    const currentCard = captureCardState();
+    const diff = asIsCardSnapshot ? computeCardDiff(asIsCardSnapshot, currentCard) : {};
+
+    report.innerHTML = '<div class="cmp-nodata">변경 효과를 분석하고 있습니다… (5~15초)</div>';
+    renderFullReport(report, diff, null);
+
+    const aRes = await fetch('/api/admin/eval/compare-analysis', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         tool_name: editName,
-        failures: lastBatchFailures,
+        as_is: cmpAsIs.results,
+        to_be: cmpToBe.results,
+        card_diff: diff,
       }),
     });
-    const d = await r.json();
-    container.innerHTML = `<div class="judge-box">${renderMd(d.analysis)}</div>`;
+    const aData = await aRes.json();
+    renderFullReport(report, diff, aData);
+
   } catch(e) {
-    container.innerHTML = `<div style="color:var(--danger);font-size:12px">LLM 분석 실패: ${e.message}</div>`;
-  } finally {
-    btn.disabled = false; btn.textContent = 'LLM 분석 실행';
+    report.innerHTML = `<div style="color:var(--danger);font-size:12px">비교 실패: ${e.message}</div>`;
   }
+}
+
+function renderFullReport(container, diff, analysisData) {
+  const asResults = cmpAsIs.results;
+  const toResults = cmpToBe.results;
+  const n = asResults.length;
+
+  let asR1=0, toR1=0, asIn3=0, toIn3=0, improved=0, regressed=0;
+  asResults.forEach((a, i) => {
+    const t = toResults[i];
+    if (a.rank === 1) asR1++;
+    if (t.rank === 1) toR1++;
+    if (a.rank && a.rank <= 3) asIn3++;
+    if (t.rank && t.rank <= 3) toIn3++;
+    const aR = a.rank || 99, tR = t.rank || 99;
+    if (tR < aR) improved++;
+    else if (tR > aR) regressed++;
+  });
+
+  const deltaR1 = toR1 - asR1;
+  const deltaIn3 = toIn3 - asIn3;
+  const overall = improved > regressed ? 'positive' : improved < regressed ? 'negative' : 'neutral';
+  const overallText = overall === 'positive' ? '개선됨' : overall === 'negative' ? '하락' : '변화 없음';
+
+  let html = '';
+
+  // Verdict
+  html += `<span class="verdict-badge ${overall}">${overallText}</span> `;
+  html += `<span style="font-size:12px;color:var(--text-muted)">개선 ${improved}건, 하락 ${regressed}건 / 전체 ${n}건</span>`;
+
+  // Diff box
+  html += renderDiffBox(diff);
+
+  // Quantitative summary
+  const r1Color = deltaR1 > 0 ? 'var(--success)' : deltaR1 < 0 ? 'var(--danger)' : 'var(--text-muted)';
+  const in3Color = deltaIn3 > 0 ? 'var(--success)' : deltaIn3 < 0 ? 'var(--danger)' : 'var(--text-muted)';
+  html += `<div class="cmp-summary">
+    <div class="cmp-summary-card">
+      <div class="cs-label">1위 정확도</div>
+      <div class="cs-value" style="color:${r1Color}">${Math.round(asR1/n*100)}% → ${Math.round(toR1/n*100)}%</div>
+    </div>
+    <div class="cmp-summary-card">
+      <div class="cs-label">Top-3 포함</div>
+      <div class="cs-value" style="color:${in3Color}">${Math.round(asIn3/n*100)}% → ${Math.round(toIn3/n*100)}%</div>
+    </div>
+    <div class="cmp-summary-card">
+      <div class="cs-label">개선</div>
+      <div class="cs-value" style="color:var(--success)">${improved}건 ▲</div>
+    </div>
+    <div class="cmp-summary-card">
+      <div class="cs-label">하락</div>
+      <div class="cs-value" style="color:${regressed > 0 ? 'var(--danger)' : 'var(--text-muted)'}">${regressed}건 ${regressed > 0 ? '▼' : ''}</div>
+    </div>
+  </div>`;
+
+  // Comparison table
+  const rows = asResults.map((a, i) => {
+    const t = toResults[i];
+    const aR = a.rank||99, tR = t.rank||99;
+    const rowBg = tR<aR ? 'background:rgba(0,184,148,0.06);' : tR>aR ? 'background:rgba(255,107,107,0.06);' : '';
+    const deltaHtml = aR===tR ? '<span class="cmp-delta same">—</span>'
+      : !a.rank && t.rank ? '<span class="cmp-delta up">NEW ▲</span>'
+      : a.rank && !t.rank ? '<span class="cmp-delta down">OUT ▼</span>'
+      : (aR-tR)>0 ? `<span class="cmp-delta up">▲${aR-tR}</span>`
+      : `<span class="cmp-delta down">▼${tR-aR}</span>`;
+    return `<tr style="${rowBg}">
+      <td class="q-cell">${escHtml(a.query)}</td>
+      <td>${rankBadge(a.rank)}</td>
+      <td><span class="cmp-score">${a.score?(a.score*100).toFixed(1)+'%':'—'}</span></td>
+      <td>${rankBadge(t.rank)}</td>
+      <td><span class="cmp-score">${t.score?(t.score*100).toFixed(1)+'%':'—'}</span></td>
+      <td>${deltaHtml}</td>
+    </tr>`;
+  }).join('');
+
+  html += `<table class="cmp-table"><thead><tr>
+    <th>테스트 질문</th>
+    <th><span class="cmp-phase-label as-is">As-Is</span> 순위</th><th>점수</th>
+    <th><span class="cmp-phase-label to-be">To-Be</span> 순위</th><th>점수</th>
+    <th>변화</th>
+  </tr></thead><tbody>${rows}</tbody></table>`;
+
+  // LLM Analysis
+  if (analysisData && analysisData.analysis) {
+    html += `<div class="analysis-box">
+      <div class="ab-title">AI 정성 분석</div>
+      ${renderMd(analysisData.analysis)}
+    </div>`;
+  } else if (analysisData === null) {
+    html += `<div class="analysis-box">
+      <div class="ab-title">AI 정성 분석</div>
+      <div class="cmp-nodata" style="padding:8px 0">분석 중…</div>
+    </div>`;
+  }
+
+  container.innerHTML = html;
 }
 
 // ── Enter key support ─────────────────────────────────────
@@ -1272,10 +1559,6 @@ async function runLlmJudge() {
       else addListItem(id.replace('new-',''));
     }
   });
-});
-
-document.getElementById('eval-query').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); runSearchTest(); }
 });
 
 document.getElementById('search').addEventListener('input', () => renderTable(allTools));

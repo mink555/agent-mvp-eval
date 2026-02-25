@@ -35,7 +35,13 @@ _REWRITE_SYSTEM = (
     "- 재작성된 질문 한 줄만 출력하세요.\n"
     "- 설명·따옴표·번호는 포함하지 마세요.\n"
     "- 원래 의도를 바꾸지 마세요.\n"
-    "- 재작성이 불필요하면 원문 그대로 출력하세요."
+    "- 재작성이 불필요하면 원문 그대로 출력하세요.\n"
+    "- 챗봇이 추가 정보(성별, 나이, 상품명 등)를 물었고 사용자가 단답으로 "
+    "응답한 경우, 그 정보를 이전 요청에 합쳐서 완전한 질문으로 만드세요.\n"
+    "  예: 챗봇이 '성별을 알려주세요' → 사용자 '아버지' → '70세 남성 기준 "
+    "두 상품 합산 보험료를 알려줘'\n"
+    "  예: 챗봇이 '어떤 상품인가요?' → 사용자 '종신보험' → '종신보험 상품 "
+    "정보를 알려줘'"
 )
 
 _REWRITE_THRESHOLD = 15  # 이 글자 수 미만일 때만 재작성 시도
@@ -62,11 +68,24 @@ def query_rewriter(state: AgentState) -> dict:
         if isinstance(m, (HumanMessage, AIMessage))
     ]
 
-    if len(query.strip()) >= _REWRITE_THRESHOLD or not prior:
+    stripped = query.strip()
+    if len(stripped) >= _REWRITE_THRESHOLD or not prior:
         return {
             "trace": [{
                 "node": "query_rewriter", "action": "skip",
                 "reason": "long query or no history",
+                "duration_ms": round((time.time() - ts) * 1000),
+            }],
+        }
+
+    _MEANINGFUL_SINGLE = {"네", "예", "응", "M", "F", "남", "여"}
+    if len(stripped) <= 1 and stripped not in _MEANINGFUL_SINGLE:
+        logger.info("Too short input (%r), treating as meaningless", stripped)
+        return {
+            "rewritten_query": stripped,
+            "trace": [{
+                "node": "query_rewriter", "action": "skip",
+                "reason": f"too_short ({len(stripped)} chars)",
                 "duration_ms": round((time.time() - ts) * 1000),
             }],
         }

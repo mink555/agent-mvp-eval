@@ -13,6 +13,8 @@ Endpoints:
   POST   /api/tools/reload-module/{mod}   — 모듈 핫리로드
   GET    /admin/tools                     — Tool Admin UI
   POST   /api/admin/eval/search           — 단일 쿼리 검색 테스트
+  POST   /api/admin/eval/bulk-search      — 멀티 쿼리 벌크 검색
+  POST   /api/admin/eval/generate-queries — LLM 테스트 질문 생성
   POST   /api/admin/eval/batch/{name}     — ToolCard 배치 Recall 평가
   POST   /api/admin/eval/judge            — LLM-as-Judge 실패 분석
 """
@@ -391,9 +393,7 @@ async def list_tools():
             {
                 "name": t.name,
                 "description": t.description,
-                "short_name": t.description.split("—")[0].split("–")[0].strip()
-                if "—" in t.description or "–" in t.description
-                else t.description[:20],
+                "short_name": t.name.replace("_", " ").title(),
             }
             for t in tools
         ],
@@ -664,6 +664,180 @@ async def eval_search(request: Request):
             {"name": c.name, "score": c.score, "description": c.description[:80]}
             for c in candidates
         ],
+    }
+
+
+@app.post("/api/admin/eval/generate-queries")
+async def eval_generate_queries(request: Request):
+    """LLM이 특정 도구에 맞는 다양한 테스트 질문을 생성."""
+    body = await request.json()
+    tool_name = body.get("tool_name", "").strip()
+    count = min(body.get("count", 8), 12)
+    if not tool_name:
+        raise HTTPException(400, "tool_name is required")
+
+    from app.tool_search.tool_cards import REGISTRY
+    from app.llm import get_llm
+
+    card = REGISTRY.get(tool_name)
+    if not card:
+        raise HTTPException(404, f"ToolCard '{tool_name}' not found")
+
+    existing = "\n".join(f"  - {q}" for q in card.when_to_use[:5])
+    negative = "\n".join(f"  - {q}" for q in card.when_not_to_use[:3])
+
+    prompt = f"""당신은 보험 챗봇의 Tool Routing 테스트 전문가입니다.
+
+아래 도구에 대해 실제 고객이 할 법한 다양한 테스트 질문을 {count}개 생성하세요.
+
+## 도구: {tool_name}
+- 목적: {card.purpose}
+- 태그: {', '.join(card.tags)}
+- 기존 when_to_use 예시:
+{existing}
+- when_not_to_use 예시:
+{negative}
+
+## 규칙
+1. 기존 when_to_use와 겹치지 않는 새로운 표현을 사용하세요.
+2. 구어체, 존댓말, 반말, 줄임말 등 다양한 말투를 섞으세요.
+3. 쉬운 질문(명확히 이 도구)과 어려운 질문(다른 도구와 헷갈릴 수 있는)을 반반 섞으세요.
+4. 반드시 이 도구가 정답인 질문만 만드세요.
+5. 한 줄에 하나씩, 번호 없이, 질문만 출력하세요. 다른 설명은 하지 마세요."""
+
+    llm = get_llm()
+    try:
+        result = await llm.ainvoke(prompt)
+        text = result.content if hasattr(result, "content") else str(result)
+        text = _strip_think(text)
+        queries = [
+            line.strip().lstrip("•-0123456789. ").strip('"').strip()
+            for line in text.strip().split("\n")
+            if line.strip() and len(line.strip()) > 3
+        ][:count]
+    except Exception as e:
+        logger.warning("Query generation failed: %s", e)
+        raise HTTPException(500, f"LLM 질문 생성 실패: {e}")
+
+    return {"tool_name": tool_name, "queries": queries}
+
+
+@app.post("/api/admin/eval/bulk-search")
+async def eval_bulk_search(request: Request):
+    """여러 쿼리를 한번에 검색 — As-Is/To-Be 비교 기반 데이터 수집용."""
+    body = await request.json()
+    queries = body.get("queries", [])
+    tool_name = body.get("tool_name", "").strip()
+    top_k = body.get("top_k", 5)
+
+    if not queries or not tool_name:
+        raise HTTPException(400, "queries and tool_name are required")
+
+    from app.tool_search.embedder import get_tool_search
+    searcher = get_tool_search()
+
+    results = []
+    for q in queries[:20]:
+        hits = searcher.search(q, top_k=top_k)
+        rank = next((i + 1 for i, c in enumerate(hits) if c.name == tool_name), None)
+        score = next((c.score for c in hits if c.name == tool_name), 0)
+        results.append({
+            "query": q,
+            "rank": rank,
+            "score": round(score, 4) if score else 0,
+            "top_hit": hits[0].name if hits else "",
+            "top_score": round(hits[0].score, 4) if hits else 0,
+        })
+
+    return {"tool_name": tool_name, "results": results}
+
+
+@app.post("/api/admin/eval/compare-analysis")
+async def eval_compare_analysis(request: Request):
+    """As-Is/To-Be 정량 비교 + ToolCard diff + LLM 정성 분석을 한번에 반환."""
+    body = await request.json()
+    tool_name = body.get("tool_name", "").strip()
+    as_is = body.get("as_is", [])
+    to_be = body.get("to_be", [])
+    card_diff = body.get("card_diff", {})
+
+    if not tool_name or not as_is or not to_be:
+        raise HTTPException(400, "tool_name, as_is, to_be are required")
+
+    n = len(as_is)
+    as_r1 = sum(1 for r in as_is if r.get("rank") == 1)
+    to_r1 = sum(1 for r in to_be if r.get("rank") == 1)
+    as_in3 = sum(1 for r in as_is if r.get("rank") and r["rank"] <= 3)
+    to_in3 = sum(1 for r in to_be if r.get("rank") and r["rank"] <= 3)
+
+    improved = []
+    regressed = []
+    for a, t in zip(as_is, to_be):
+        ar = a.get("rank") or 99
+        tr = t.get("rank") or 99
+        if tr < ar:
+            improved.append(a.get("query", ""))
+        elif tr > ar:
+            regressed.append(a.get("query", ""))
+
+    diff_desc_parts = []
+    for field, changes in card_diff.items():
+        added = changes.get("added", [])
+        removed = changes.get("removed", [])
+        if added:
+            diff_desc_parts.append(f"[{field}] 추가: {added}")
+        if removed:
+            diff_desc_parts.append(f"[{field}] 삭제: {removed}")
+    diff_summary = "\n".join(diff_desc_parts) if diff_desc_parts else "변경 없음"
+
+    from app.llm import get_llm
+    prompt = f"""당신은 Tool Routing 최적화 전문가입니다.
+
+아래는 "{tool_name}" 도구의 ToolCard 수정 전후 비교 결과입니다. 간결하게 분석해주세요.
+
+## ToolCard 변경 사항
+{diff_summary}
+
+## 정량 결과
+- 1위 정확도: {round(as_r1/n*100)}% → {round(to_r1/n*100)}% ({"↑" if to_r1>as_r1 else "↓" if to_r1<as_r1 else "="})
+- Top-3 포함: {round(as_in3/n*100)}% → {round(to_in3/n*100)}% ({"↑" if to_in3>as_in3 else "↓" if to_in3<as_in3 else "="})
+- 개선 {len(improved)}건, 하락 {len(regressed)}건 / 전체 {n}건
+
+## 개선된 쿼리
+{chr(10).join(f'  - {q}' for q in improved[:5]) if improved else '  없음'}
+
+## 하락한 쿼리
+{chr(10).join(f'  - {q}' for q in regressed[:5]) if regressed else '  없음'}
+
+## 요청
+1. 이 변경이 전반적으로 긍정적인지 부정적인지 한 줄로 요약하세요.
+2. 하락한 쿼리가 있다면 원인과 보완 방안을 제안하세요.
+3. 추가로 개선할 수 있는 방향이 있다면 제안하세요.
+
+한국어로 간결하게(5줄 이내) 답변하세요."""
+
+    analysis = ""
+    llm = get_llm()
+    try:
+        result = await llm.ainvoke(prompt)
+        analysis = result.content if hasattr(result, "content") else str(result)
+        analysis = _strip_think(analysis)
+    except Exception as e:
+        logger.warning("Compare analysis LLM failed: %s", e)
+        analysis = f"LLM 분석 실패: {e}"
+
+    return {
+        "tool_name": tool_name,
+        "quantitative": {
+            "as_is_r1": round(as_r1 / n * 100) if n else 0,
+            "to_be_r1": round(to_r1 / n * 100) if n else 0,
+            "as_is_in3": round(as_in3 / n * 100) if n else 0,
+            "to_be_in3": round(to_in3 / n * 100) if n else 0,
+            "improved": len(improved),
+            "regressed": len(regressed),
+            "total": n,
+        },
+        "analysis": analysis,
     }
 
 
