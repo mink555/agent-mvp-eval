@@ -332,6 +332,16 @@
     .examples-section {
       padding: 8px 24px 0;
       flex-shrink: 0;
+      transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+      overflow: hidden;
+    }
+
+    .examples-section.hidden {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      pointer-events: none;
     }
 
     .examples-header {
@@ -909,6 +919,7 @@
         '<span class="no-data">질문을 입력하면 선택된 도구 정보가 표시됩니다.</span>';
       document.getElementById('trace-items').innerHTML =
         '<span class="no-data">파이프라인 실행 과정이 여기에 표시됩니다.</span>';
+      showExamples();
     }
 
     function askExample(el) {
@@ -940,6 +951,16 @@
       { id: 'generate', label: '답변 생성',  icon: '3' },
     ];
 
+    function hideExamples() {
+      const sec = document.querySelector('.examples-section');
+      if (sec) sec.classList.add('hidden');
+    }
+
+    function showExamples() {
+      const sec = document.querySelector('.examples-section');
+      if (sec) sec.classList.remove('hidden');
+    }
+
     /* ── 메시지 전송 ── */
     async function sendMsg() {
       const input = document.getElementById('query-input');
@@ -949,6 +970,7 @@
       input.value = '';
       const btn = document.getElementById('send-btn');
       btn.disabled = true;
+      hideExamples();
 
       appendMsg('user', query);
 
