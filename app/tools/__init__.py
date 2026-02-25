@@ -120,11 +120,24 @@ class ToolRegistry:
         self._on_change_callbacks.append(callback)
 
     def _fire_on_change(self) -> None:
+        """콜백을 백그라운드 데몬 스레드에서 실행.
+
+        FastAPI async 이벤트 루프를 블로킹하지 않으면서,
+        embedder._index_lock이 동시 실행을 직렬화한다.
+        """
         for cb in self._on_change_callbacks:
-            try:
-                cb(self)
-            except Exception:
-                logger.exception("on_change callback failed")
+            threading.Thread(
+                target=self._safe_callback,
+                args=(cb,),
+                daemon=True,
+                name="tool-registry-reindex",
+            ).start()
+
+    def _safe_callback(self, cb: Callable[["ToolRegistry"], None]) -> None:
+        try:
+            cb(self)
+        except Exception:
+            logger.exception("on_change callback failed")
 
     # ── 초기 로드 ────────────────────────────────────────────
 
