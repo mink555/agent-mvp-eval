@@ -387,7 +387,11 @@ async def list_tools():
 
 @app.delete("/api/tools/{tool_name}")
 async def unregister_tool(tool_name: str):
-    """런타임에 도구를 해제한다. ChromaDB 벡터도 자동 삭제."""
+    """런타임에 도구를 해제한다. ChromaDB 벡터도 자동 삭제.
+
+    1) remove_tool — ChromaDB에서 즉시 벡터 제거 (검색 즉시 반영)
+    2) unregister — 레지스트리에서 해제 → 백그라운드 재인덱싱으로 해시 갱신
+    """
     registry = get_tool_registry()
     if not registry.get_by_name(tool_name):
         raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
@@ -409,7 +413,11 @@ async def unregister_tool(tool_name: str):
 
 @app.post("/api/tools/reload-module/{module_name}")
 async def reload_module_tools(module_name: str):
-    """특정 도구 모듈의 도구들을 런타임에 재등록한다. 서버 재시작 없이 도구 복원/추가."""
+    """특정 도구 모듈의 도구들을 런타임에 재등록한다. 서버 재시작 없이 도구 복원/추가.
+
+    register_many()로 일괄 등록하여 콜백(ChromaDB 재인덱싱)을 1회만 호출한다.
+    기존 코드 변경도 반영되므로 진정한 '핫리로드'로 동작한다.
+    """
     import importlib
 
     registry = get_tool_registry()
@@ -420,16 +428,12 @@ async def reload_module_tools(module_name: str):
         if not tools_in_mod:
             raise HTTPException(status_code=404, detail=f"No TOOLS in module 'app.tools.{module_name}'")
 
-        registered = []
-        for t in tools_in_mod:
-            if not registry.get_by_name(t.name):
-                registry.register(t)
-                registered.append(t.name)
+        registry.register_many(tools_in_mod)
 
         return {
             "status": "ok",
             "module": module_name,
-            "registered": registered,
+            "registered": [t.name for t in tools_in_mod],
             "tools_count": len(registry),
             "registry_version": registry.version,
         }

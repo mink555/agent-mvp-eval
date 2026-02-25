@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import threading
 from collections import defaultdict
 from functools import lru_cache
 
@@ -89,12 +90,23 @@ class ToolEmbeddingSearch:
             embedding_function=self._ef,
         )
         self._top_k = s.tool_search_top_k
+        self._index_lock = threading.Lock()
 
     def index_tools(self, tools: list[BaseTool] | tuple[BaseTool, ...]) -> None:
-        """LangChain 도구들을 ChromaDB에 멀티-벡터 임베딩. 변경 시에만 재인덱싱."""
+        """LangChain 도구들을 ChromaDB에 멀티-벡터 임베딩. 변경 시에만 재인덱싱.
+
+        Upsert-First 전략: 새 문서를 먼저 추가한 뒤 stale 문서만 제거한다.
+        이전 Delete-All → Insert-All 방식에서 발생하던 제로벡터 구간(~3초)을
+        완전히 제거하여 서비스 중 재인덱싱 시에도 검색 공백이 없다.
+        """
         if not tools:
             logger.warning("No tools to index, skipping")
             return
+
+        with self._index_lock:
+            self._index_tools_impl(tools)
+
+    def _index_tools_impl(self, tools: list[BaseTool] | tuple[BaseTool, ...]) -> None:
         new_hash = _compute_tools_hash(tools)
 
         try:
@@ -104,13 +116,6 @@ class ToolEmbeddingSearch:
                 return
         except Exception:
             pass
-
-        existing = self._collection.get(include=[])
-        existing_ids = set(existing["ids"]) if existing["ids"] else set()
-        old_tool_ids = {i for i in existing_ids if i.startswith("tool_")}
-        if old_tool_ids:
-            self._collection.delete(ids=list(old_tool_ids))
-            logger.info("Deleted %d old tool documents", len(old_tool_ids))
 
         no_card = missing_cards([t.name for t in tools])
         if no_card:
@@ -130,7 +135,22 @@ class ToolEmbeddingSearch:
                     "has_card": str(get_card(t.name) is not None),
                 })
 
+        new_id_set = set(ids)
+
+        # 1) UPSERT FIRST — 새/수정 문서를 먼저 추가 (검색 공백 없음)
         self._collection.upsert(ids=ids, documents=docs, metadatas=metas)
+
+        # 2) Stale 문서만 제거 (삭제된 도구 or when_to_use 개수 감소분)
+        existing = self._collection.get(include=[])
+        existing_tool_ids = {
+            i for i in (existing["ids"] or []) if i.startswith("tool_")
+        }
+        stale_ids = existing_tool_ids - new_id_set
+        if stale_ids:
+            self._collection.delete(ids=list(stale_ids))
+            logger.info("Cleaned %d stale tool documents", len(stale_ids))
+
+        # 3) 버전 해시 갱신
         self._collection.upsert(
             ids=["__spec_version__"],
             documents=[f"version:{new_hash}"],
