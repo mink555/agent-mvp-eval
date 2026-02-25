@@ -156,6 +156,53 @@ MCP Inspector UI로 도구 입출력, 리소스 조회, 프롬프트 렌더링�
 python run_mcp.py --inspect
 ```
 
+### 4-9. 도구 추가 체크리스트
+
+새 도구를 추가할 때 아래 4단계를 순서대로 수행한다.
+
+**① 도구 함수 작성** — `app/tools/` 아래 해당 모듈에 `@tool` 함수를 추가한다. 함수의 `tool.name`이 이후 모든 연동의 키가 된다.
+
+**② ToolCard 등록** — `app/tool_search/tool_cards.py`의 `_CARDS` 리스트에 카드를 추가한다.
+
+| 필드 | 규칙 | 예시 |
+|------|------|------|
+| `name` | tool.name과 **정확히** 일치 | `"premium_estimate"` |
+| `purpose` | 한 문장으로 명확하게 | `"예상 월 보험료를 산출한다."` |
+| `when_to_use` | **실제 사용자 발화** 패턴으로 작성 | `("보험료 얼마야?", "40세 남성 보험료")` |
+| `when_not_to_use` | 혼동 도구명을 `→ tool_name 사용` 형식으로 명시 | `("납입 플랜 → plan_options 사용",)` |
+| `tags` | 도메인 키워드 (필터링용) | `("보험료", "산출")` |
+
+> `when_to_use`가 다른 도구 카드와 **중복되면 임베딩이 충돌**한다. `validate_duplicate_when_to_use()`가 자동 검출하므로 평가 스크립트를 반드시 실행할 것.
+
+**③ 혼동 쌍 관리** — 기능이 유사한 도구가 있으면 양방향으로 처리한다.
+
+```
+1. 새 카드의 when_not_to_use에 기존 유사 도구 언급
+2. 기존 유사 도구의 when_not_to_use에 새 도구 언급
+3. CONFUSION_PAIRS 리스트에 (기존, 신규) 쌍 등록
+```
+
+`validate_confusion_pairs()`가 양방향 누락을 검출한다.
+
+**④ 검증**
+
+```bash
+python -m scripts.eval_tool_recall --compare   # Recall@k, MRR 확인
+python -m scripts.eval_tool_recall --verbose    # 오판 사례 상세
+```
+
+**연동 자동/수동 요약:**
+
+| 연동 지점 | 자동/수동 | 설명 |
+|-----------|:---------:|------|
+| ChromaDB 임베딩 | 자동 | 서버 재시작 시 해시 비교 → 변경 감지되면 재인덱싱 |
+| LLM tool description | 자동 | `when_not_to_use`가 bind_tools() 시 description에 주입 |
+| 평가 스크립트 | 자동 | 카드 정합성 검증이 평가 시 자동 실행 |
+| 도구 함수 (`app/tools/`) | **수동** | 카드만 있고 실제 함수가 없으면 동작하지 않음 |
+| `CONFUSION_PAIRS` | **수동** | 유사 도구가 있을 경우 반드시 등록 |
+
+> ToolCard가 없는 도구는 `tool.description` 단일 문서로 fallback 되어 동작은 하지만 검색 정확도가 낮다. 서버 로그에 `"ToolCard 없는 도구 N개"` 경고가 출력된다.
+
 ---
 
 ## 5. 기술 선택 근거
