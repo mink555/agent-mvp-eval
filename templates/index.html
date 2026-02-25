@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Insurance Chatbot — TMR Console</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root {
       --bg: #0f1117;
@@ -125,6 +126,25 @@
       background: var(--surface2);
       border-bottom-left-radius: 4px;
     }
+
+    .msg.bot.rendered { white-space: normal; }
+    .msg.bot.rendered p { margin: 0 0 8px; }
+    .msg.bot.rendered p:last-child { margin-bottom: 0; }
+    .msg.bot.rendered ul, .msg.bot.rendered ol { margin: 4px 0 8px 18px; padding: 0; }
+    .msg.bot.rendered li { margin-bottom: 2px; }
+    .msg.bot.rendered h1,.msg.bot.rendered h2,.msg.bot.rendered h3 {
+      font-size: 14px; font-weight: 600; margin: 10px 0 4px; color: var(--accent-light);
+    }
+    .msg.bot.rendered table {
+      width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px;
+    }
+    .msg.bot.rendered th, .msg.bot.rendered td {
+      padding: 6px 10px; border: 1px solid var(--border); text-align: left;
+    }
+    .msg.bot.rendered th { background: var(--surface3); font-weight: 600; }
+    .msg.bot.rendered hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+    .msg.bot.rendered code { background: var(--surface3); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+    .msg.bot.rendered strong { color: var(--accent-light); }
 
     .msg .meta {
       font-size: 11px;
@@ -681,6 +701,15 @@
   </div>
 
   <script>
+    /* ── Markdown 렌더링 ── */
+    function renderMd(text) {
+      if (typeof marked !== 'undefined') {
+        marked.setOptions({ breaks: true, gfm: true });
+        return marked.parse(text || '');
+      }
+      return (text || '').replace(/\n/g, '<br>');
+    }
+
     /* ── Session / Thread 관리 ──
      *  sessionId: 브라우저 탭 단위 (새로고침 시 변경, 서버 로깅용)
      *  threadId:  대화 단위 — localStorage에 저장해 새로고침 후에도 유지.
@@ -874,9 +903,10 @@
         });
 
         if (doneData) {
-          if (doneData.answer && doneData.answer !== fullAnswer) {
-            botEl.textContent = doneData.answer;
-          }
+          const finalText = (doneData.answer && doneData.answer !== fullAnswer)
+            ? doneData.answer : fullAnswer;
+          botEl.innerHTML = renderMd(finalText);
+          botEl.classList.add('rendered');
 
           const allTools = doneData.tools_used || [];
           if (allTools.length > 0 || doneData.rag_used) {
