@@ -174,6 +174,8 @@ python run_mcp.py --inspect
 
 > `when_to_use`가 다른 도구 카드와 **중복되면 임베딩이 충돌**한다. `validate_duplicate_when_to_use()`가 자동 검출하므로 평가 스크립트를 반드시 실행할 것.
 
+ToolCard 설계는 Tool Document Expansion [(Tool-DE, Lu et al. 2025)](https://arxiv.org/abs/2510.22670) 연구에 기반한다. purpose·when_to_use·tags로 임베딩 표면을 확장하고, when_not_to_use는 LLM description에만 주입하여 벡터 오염을 방지한다. Re-Invoke [(Google, EMNLP 2024)](https://arxiv.org/abs/2408.01875)의 합성 쿼리 전략과 동일 원리이며, ablation 결과 negative example을 임베딩에서 제외할 때 NDCG가 가장 높았다.
+
 **③ 혼동 쌍 관리** — 기능이 유사한 도구가 있으면 양방향으로 처리한다.
 
 ```
@@ -182,7 +184,7 @@ python run_mcp.py --inspect
 3. CONFUSION_PAIRS 리스트에 (기존, 신규) 쌍 등록
 ```
 
-`validate_confusion_pairs()`가 양방향 누락을 검출한다.
+`validate_confusion_pairs()`가 양방향 누락을 검출한다. 유사 도구 간 명시적 cross-reference는 ToolBench [(ICLR 2024)](https://arxiv.org/abs/2307.16789)에서 도구 수 증가 시 정확도 저하를 방지하는 핵심 전략으로 제시되었다.
 
 **④ 검증**
 
@@ -202,6 +204,33 @@ python -m scripts.eval_tool_recall --verbose    # 오판 사례 상세
 | `CONFUSION_PAIRS` | **수동** | 유사 도구가 있을 경우 반드시 등록 |
 
 > ToolCard가 없는 도구는 `tool.description` 단일 문서로 fallback 되어 동작은 하지만 검색 정확도가 낮다. 서버 로그에 `"ToolCard 없는 도구 N개"` 경고가 출력된다.
+
+### 4-10. 런타임 도구 관리 API
+
+서버 재시작 없이 도구를 추가·제거·확인할 수 있는 REST API를 제공한다. ToolRegistry [(동적 레지스트리 패턴)](https://python.langchain.com/docs/how_to/tools_runtime/)가 변경을 감지하고 ChromaDB 재인덱싱을 자동 트리거한다.
+
+```bash
+# 전체 도구 목록 조회
+curl http://localhost:8080/api/tools
+
+# 특정 도구 런타임 해제 (ChromaDB 벡터도 자동 삭제)
+curl -X DELETE http://localhost:8080/api/tools/premium_estimate
+
+# 모듈 단위 핫리로드 (수정한 도구 코드를 서버 재시작 없이 반영)
+curl -X POST http://localhost:8080/api/tools/reload-module/premium
+```
+
+| API | 메서드 | 기능 |
+|-----|--------|------|
+| `/api/tools` | GET | 전체 도구 목록 + 메타데이터 |
+| `/api/tools/{tool_name}` | DELETE | 도구 해제 + ChromaDB 벡터 삭제 |
+| `/api/tools/reload-module/{module}` | POST | 모듈 `importlib.reload()` → 도구 재등록 |
+
+MCP Inspector에서도 도구 입출력을 브라우저에서 직접 테스트할 수 있다.
+
+```bash
+python run_mcp.py --inspect    # Inspector UI → http://localhost:5173
+```
 
 ---
 
