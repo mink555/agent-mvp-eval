@@ -105,17 +105,17 @@
       border-bottom:1px solid var(--border); position:sticky; top:58px; z-index:10;
     }
     .tool-table td {
-      padding:10px 14px; font-size:13px; border-bottom:1px solid var(--border);
+      padding:12px 14px; font-size:13px; border-bottom:1px solid var(--border);
       vertical-align:top;
     }
     .tool-table tr:last-child td { border-bottom:none; }
-    .tool-table tr:hover td { background:rgba(108,92,231,0.04); }
+    .tool-table tr:hover td { background:rgba(108,92,231,0.06); }
 
-    .tool-name { font-weight:600; color:var(--accent-light); font-family:'SF Mono',monospace; font-size:12px; }
-    .tool-purpose { color:var(--text-dim); font-size:12px; margin-top:2px; }
+    .tool-name { font-weight:600; color:var(--accent-light); font-family:'SF Mono',monospace; font-size:12.5px; }
+    .tool-purpose { color:var(--text-dim); font-size:12px; margin-top:3px; line-height:1.4; }
     .tag {
-      display:inline-block; padding:2px 7px; border-radius:4px;
-      font-size:10px; font-weight:600; margin:1px 2px;
+      display:inline-block; padding:2px 8px; border-radius:4px;
+      font-size:10.5px; font-weight:600; margin:1px 2px;
     }
     .tag.card { background:var(--success-dim); color:var(--success); }
     .tag.no-card { background:var(--warning-dim); color:var(--warning); }
@@ -144,9 +144,9 @@
     .modal p { font-size:13px; color:var(--text-dim); margin-bottom:16px; line-height:1.5; }
     .modal .modal-actions { display:flex; gap:8px; justify-content:flex-end; }
 
-    .modal label { display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; }
+    .modal label { display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:500; }
     .modal input, .modal select {
-      width:100%; padding:8px 12px; border:1px solid var(--border);
+      width:100%; padding:9px 12px; border:1px solid var(--border);
       border-radius:8px; background:var(--surface2); color:var(--text);
       font-size:13px; margin-bottom:14px; outline:none;
     }
@@ -174,6 +174,204 @@
     .when-to-use.expanded { max-height:500px; }
     .when-to-use span { display:block; padding:1px 0; }
 
+    .modal.wide { max-width:700px; max-height:90vh; display:flex; flex-direction:column; }
+    .modal.wide .modal-body { flex:1; overflow-y:auto; padding-right:4px; }
+    .edit-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+    .edit-header h3 { margin:0; }
+    .edit-status { display:flex; gap:6px; }
+
+    .tab-bar { display:flex; gap:0; margin-bottom:16px; border-bottom:1px solid var(--border); }
+    .tab-btn {
+      padding:8px 18px; font-size:12px; font-weight:600; cursor:pointer;
+      background:transparent; border:none; color:var(--text-muted);
+      border-bottom:2px solid transparent; transition:all 0.2s;
+    }
+    .tab-btn:hover { color:var(--text); }
+    .tab-btn.active { color:var(--accent-light); border-bottom-color:var(--accent); }
+
+    .list-editor { margin-bottom:8px; }
+    .list-item {
+      display:flex; align-items:center; gap:8px; padding:7px 10px;
+      background:var(--surface2); border:1px solid var(--border); border-radius:6px;
+      margin-bottom:4px; font-size:12px; line-height:1.4;
+    }
+    .list-item span { flex:1; word-break:break-word; }
+    .list-item .rm-btn {
+      width:20px; height:20px; border:none; background:transparent;
+      color:var(--danger); cursor:pointer; font-size:14px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; border-radius:4px;
+    }
+    .list-item .rm-btn:hover { background:var(--danger-dim); }
+    .add-row { display:flex; gap:6px; margin-bottom:14px; }
+    .add-row input { flex:1; margin-bottom:0; }
+    .add-row .btn { padding:6px 14px; }
+
+    .tag-editor { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; }
+    .tag-chip {
+      display:flex; align-items:center; gap:4px; padding:3px 8px;
+      background:var(--info-dim); color:var(--info); border-radius:4px;
+      font-size:11px; font-weight:600;
+    }
+    .tag-chip .rm-btn { color:var(--info); font-size:12px; cursor:pointer; background:transparent; border:none; }
+    .tag-chip .rm-btn:hover { color:var(--danger); }
+
+    .history-item {
+      display:flex; align-items:center; gap:12px; padding:12px 14px;
+      background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+      margin-bottom:6px; font-size:12px; line-height:1.4;
+    }
+    .history-item .ver { font-weight:700; color:var(--accent-light); min-width:28px; }
+    .history-item .note { flex:1; color:var(--text-dim); }
+    .history-item .ts { color:var(--text-muted); font-size:11px; white-space:nowrap; }
+    .history-actions { display:flex; gap:4px; }
+
+    .diff-block { margin:8px 0 14px; padding:10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:12px; }
+    .diff-block .diff-field { margin-bottom:8px; }
+    .diff-block .diff-label { font-weight:600; color:var(--text); margin-bottom:4px; }
+    .diff-old { color:var(--danger); text-decoration:line-through; }
+    .diff-new { color:var(--success); }
+
+    .edit-note-input { margin-bottom:0 !important; }
+
+    /* Quick Test tab */
+    .eval-section {
+      margin-bottom:24px; padding-bottom:20px;
+      border-bottom:1px solid var(--border);
+    }
+    .eval-section:last-child { border-bottom:none; margin-bottom:0; }
+    .eval-section h4 {
+      font-size:14px; font-weight:700; margin-bottom:4px; color:var(--accent-light);
+      display:flex; align-items:center; gap:8px;
+    }
+    .eval-section h4 .step-num {
+      background:var(--accent); color:#fff; width:22px; height:22px; border-radius:50%;
+      display:inline-flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:700; flex-shrink:0;
+    }
+    .eval-section .section-desc {
+      font-size:12px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;
+    }
+    .search-test-row { display:flex; gap:8px; margin-bottom:14px; }
+    .search-test-row input { flex:1; margin-bottom:0; }
+
+    .search-result {
+      display:flex; align-items:center; gap:10px; padding:8px 12px;
+      background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+      margin-bottom:4px; font-size:12px; transition:border-color 0.15s;
+    }
+    .search-result .rank {
+      min-width:28px; height:28px; border-radius:50%; font-weight:700;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--surface3); color:var(--text-muted); font-size:11px;
+    }
+    .search-result .sr-name { font-family:'SF Mono',monospace; color:var(--accent-light); min-width:150px; font-weight:600; }
+    .search-result .sr-score-wrap { min-width:100px; display:flex; flex-direction:column; gap:2px; }
+    .search-result .sr-score { color:var(--success); font-weight:700; font-size:12px; }
+    .search-result .sr-bar { height:3px; border-radius:2px; background:var(--surface3); }
+    .search-result .sr-bar-fill { height:100%; border-radius:2px; background:var(--success); }
+    .search-result .sr-desc { flex:1; color:var(--text-muted); font-size:11px; line-height:1.4; }
+    .search-result.is-target {
+      border-color:var(--success); background:var(--success-dim);
+    }
+    .search-result.is-target .rank { background:var(--success); color:#fff; }
+    .search-result.is-miss { border-color:var(--danger); background:var(--danger-dim); }
+
+    .recall-bar { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+    .recall-card {
+      background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+      padding:14px 20px; text-align:center; min-width:90px; flex:1;
+    }
+    .recall-card .rc-label { font-size:11px; color:var(--text-muted); font-weight:600; letter-spacing:0.3px; }
+    .recall-card .rc-value { font-size:24px; font-weight:800; margin-top:4px; }
+    .recall-card .rc-sub { font-size:10px; color:var(--text-muted); margin-top:2px; }
+    .recall-card .rc-value.good { color:var(--success); }
+    .recall-card .rc-value.ok { color:var(--warning); }
+    .recall-card .rc-value.bad { color:var(--danger); }
+
+    .batch-detail {
+      display:flex; align-items:center; gap:8px; padding:8px 12px;
+      background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+      margin-bottom:4px; font-size:12px;
+    }
+    .batch-detail .bd-icon { font-size:14px; min-width:20px; text-align:center; }
+    .batch-detail .bd-query { flex:1; word-break:break-word; line-height:1.4; }
+    .batch-detail .bd-rank {
+      font-weight:700; min-width:32px; text-align:center;
+      padding:2px 6px; border-radius:4px; font-size:11px;
+    }
+    .batch-detail.pass .bd-rank { background:var(--success-dim); color:var(--success); }
+    .batch-detail.fail .bd-rank { background:var(--danger-dim); color:var(--danger); }
+    .batch-detail .bd-top { color:var(--text-muted); font-size:11px; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .batch-detail.pass .bd-icon { color:var(--success); }
+    .batch-detail.fail .bd-icon { color:var(--danger); }
+    .batch-detail.fail { border-color:var(--danger); background:var(--danger-dim); }
+
+    .judge-box {
+      background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; font-size:13px; line-height:1.8; color:var(--text-dim);
+      max-height:400px; overflow-y:auto;
+    }
+    .judge-box h3 { font-size:14px; color:var(--accent-light); margin:16px 0 8px; font-weight:700; }
+    .judge-box h3:first-child { margin-top:0; }
+    .judge-box h4 { font-size:13px; color:var(--text); margin:12px 0 6px; font-weight:600; }
+    .judge-box strong { color:var(--text); }
+    .judge-box em { color:var(--warning); font-style:normal; font-weight:600; }
+    .judge-box code { background:var(--surface3); color:var(--accent-light); padding:1px 5px; border-radius:3px; font-size:12px; }
+    .judge-box ul, .judge-box ol { margin:6px 0 6px 18px; }
+    .judge-box li { margin:3px 0; }
+    .judge-box hr { border:none; border-top:1px solid var(--border); margin:14px 0; }
+    .judge-box blockquote {
+      border-left:3px solid var(--accent); padding:6px 12px; margin:8px 0;
+      background:rgba(108,92,231,0.06); border-radius:0 6px 6px 0; font-size:12px;
+    }
+
+    .spinner { display:inline-block; width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.6s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Guide & Safety UX */
+    .guide-panel {
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+      padding:16px 20px; margin-bottom:20px; font-size:12px; line-height:1.7;
+    }
+    .guide-toggle {
+      display:flex; align-items:center; justify-content:space-between; cursor:pointer;
+      font-weight:700; font-size:13px; color:var(--accent-light);
+    }
+    .guide-toggle .arrow { transition:transform 0.2s; }
+    .guide-panel.collapsed .guide-body { display:none; }
+    .guide-panel.collapsed .arrow { transform:rotate(-90deg); }
+    .guide-body { margin-top:12px; }
+    .guide-row { display:flex; gap:10px; align-items:flex-start; margin-bottom:8px; }
+    .guide-row .gl { min-width:72px; font-weight:700; padding:3px 8px; border-radius:4px; text-align:center; font-size:10px; flex-shrink:0; margin-top:1px; }
+    .gl-safe { background:var(--success-dim); color:var(--success); }
+    .gl-live { background:var(--danger-dim); color:var(--danger); }
+    .gl-warn { background:var(--warning-dim); color:var(--warning); }
+
+    .tab-badge {
+      font-size:9px; padding:1px 5px; border-radius:3px; margin-left:4px;
+      font-weight:700; vertical-align:middle; letter-spacing:0.3px;
+    }
+    .tab-badge.safe { background:var(--success-dim); color:var(--success); }
+    .tab-badge.live { background:var(--danger-dim); color:var(--danger); }
+
+    .publish-warning {
+      background:var(--warning-dim); border:1px solid rgba(253,203,110,0.3); border-radius:8px;
+      padding:10px 14px; margin-bottom:14px; font-size:11px; line-height:1.6; color:var(--warning);
+    }
+    .publish-warning strong { color:var(--text); }
+
+    .btn.publish-btn {
+      background:#c0392b; color:#fff; border-color:#c0392b;
+      font-weight:700;
+    }
+    .btn.publish-btn:hover { background:#e74c3c; border-color:#e74c3c; }
+
+    .safe-banner {
+      background:var(--success-dim); border:1px solid rgba(0,184,148,0.2); border-radius:8px;
+      padding:8px 12px; margin-bottom:14px; font-size:11px; color:var(--success);
+      display:flex; align-items:center; gap:6px;
+    }
+
     @media (max-width:768px) {
       .content { padding:12px; }
       .stats-row { grid-template-columns:1fr 1fr; }
@@ -181,6 +379,9 @@
       .tool-table th, .tool-table td { padding:8px 10px; }
       .col-tags, .col-when { display:none; }
       header { padding:10px 14px; }
+      .modal.wide { max-width:100%; width:100%; margin:8px; max-height:calc(100vh - 16px); }
+      .tab-btn { padding:8px 12px; font-size:11px; }
+      .edit-header { flex-direction:column; align-items:flex-start; }
     }
   </style>
 </head>
@@ -197,6 +398,39 @@
   </header>
 
   <div class="content">
+    <!-- 온보딩 가이드 -->
+    <div class="guide-panel" id="guide-panel">
+      <div class="guide-toggle" onclick="toggleGuide()">
+        <span>이 화면 사용법</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="guide-body">
+        <div class="guide-row">
+          <span class="gl gl-safe">안전</span>
+          <span>검색, 상세보기, 퀵 테스트 — 챗봇에 아무 영향 없음. 마음껏 써도 됨</span>
+        </div>
+        <div class="guide-row">
+          <span class="gl gl-warn">주의</span>
+          <span>편집 탭에서 내용을 고치는 것 자체는 안전. 아직 반영 안 됨</span>
+        </div>
+        <div class="guide-row">
+          <span class="gl gl-live">즉시 반영</span>
+          <span><strong>「저장 & 즉시 반영」</strong> 클릭 → 지금 돌아가는 챗봇에 바로 적용됨</span>
+        </div>
+        <div class="guide-row">
+          <span class="gl gl-live">즉시 반영</span>
+          <span><strong>「도구 해제」</strong> 클릭 → 챗봇이 해당 도구를 바로 못 씀 (모듈 리로드로 복원 가능)</span>
+        </div>
+        <div class="guide-row">
+          <span class="gl gl-live">즉시 반영</span>
+          <span><strong>「롤백」</strong> 클릭 → 과거 버전으로 교체. 지금 반영 중인 카드가 바뀜</span>
+        </div>
+        <div style="margin-top:8px;color:var(--text-muted);font-size:11px">
+          잘못 반영했을 때: 「코드 원본 복원」 또는 「롤백」으로 되돌릴 수 있음
+        </div>
+      </div>
+    </div>
+
     <div class="stats-row" id="stats-row">
       <div class="stat-card"><div class="label">등록 도구</div><div class="value" id="s-tools">—</div></div>
       <div class="stat-card"><div class="label">ChromaDB 벡터</div><div class="value" id="s-vectors">—</div></div>
@@ -235,11 +469,19 @@
   <!-- Delete Confirm Modal -->
   <div class="modal-overlay" id="delete-modal">
     <div class="modal">
-      <h3>도구 해제 확인</h3>
-      <p><strong id="del-name" style="color:var(--danger)"></strong> 도구를 런타임에서 해제합니다.<br>ChromaDB 벡터도 즉시 삭제됩니다. 모듈 리로드로 복원할 수 있습니다.</p>
+      <h3 style="color:var(--danger)">도구 해제 — 즉시 반영됨</h3>
+      <div class="publish-warning" style="border-color:rgba(225,112,85,0.3)">
+        <strong style="color:var(--danger)">이 작업은 지금 돌아가는 챗봇에 바로 적용됩니다.</strong>
+      </div>
+      <p>
+        <strong id="del-name" style="color:var(--danger)"></strong> 도구를 해제하면:<br>
+        • 챗봇이 이 도구를 <strong>더 이상 사용할 수 없게</strong> 됩니다<br>
+        • ChromaDB에서 벡터가 즉시 삭제됩니다<br><br>
+        <span style="color:var(--success)">되돌리는 방법:</span> 상단의 「모듈 리로드」 버튼으로 복원할 수 있습니다.
+      </p>
       <div class="modal-actions">
-        <button class="btn" onclick="closeModal('delete-modal')">취소</button>
-        <button class="btn danger" id="del-confirm" onclick="confirmDelete()">해제</button>
+        <button class="btn" onclick="closeModal('delete-modal')">취소 (해제 안 함)</button>
+        <button class="btn danger" id="del-confirm" onclick="confirmDelete()">해제 실행</button>
       </div>
     </div>
   </div>
@@ -273,7 +515,122 @@
       <h3 id="detail-title"></h3>
       <div id="detail-body" style="font-size:13px;line-height:1.6;color:var(--text-dim);max-height:60vh;overflow-y:auto"></div>
       <div class="modal-actions" style="margin-top:16px">
+        <button class="btn primary" onclick="closeModal('detail-modal');openEdit(document.getElementById('detail-title').textContent)">편집</button>
         <button class="btn" onclick="closeModal('detail-modal')">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit ToolCard Modal -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal wide">
+      <div class="edit-header">
+        <h3 id="edit-title">ToolCard 편집</h3>
+        <div class="edit-status">
+          <span class="tag card" id="edit-source"></span>
+          <span class="tag module" id="edit-version"></span>
+        </div>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="edit" onclick="switchEditTab('edit')">편집 <span class="tab-badge live">수정 가능</span></button>
+        <button class="tab-btn" data-tab="history" onclick="switchEditTab('history')">버전 이력 <span class="tab-badge safe">안전</span></button>
+        <button class="tab-btn" data-tab="eval" onclick="switchEditTab('eval')">퀵 테스트 <span class="tab-badge safe">안전</span></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 편집 탭 -->
+        <div id="tab-edit">
+          <label>Purpose (도구 목적)</label>
+          <input id="edit-purpose" type="text" placeholder="이 도구가 하는 일을 한 문장으로...">
+
+          <label>when_to_use (사용자 발화 예시)</label>
+          <div class="list-editor" id="edit-wtu"></div>
+          <div class="add-row">
+            <input id="new-wtu" type="text" placeholder='예: "보험료 얼마야?"'>
+            <button class="btn" onclick="addListItem('wtu')">추가</button>
+          </div>
+
+          <label>when_not_to_use (혼동 방지)</label>
+          <div class="list-editor" id="edit-wntu"></div>
+          <div class="add-row">
+            <input id="new-wntu" type="text" placeholder='예: "납입 플랜 → plan_options 사용"'>
+            <button class="btn" onclick="addListItem('wntu')">추가</button>
+          </div>
+
+          <label>Tags (도메인 태그)</label>
+          <div class="tag-editor" id="edit-tags"></div>
+          <div class="add-row">
+            <input id="new-tag" type="text" placeholder="태그 추가..." style="max-width:200px">
+            <button class="btn" onclick="addTagItem()">추가</button>
+          </div>
+
+          <label>변경 메모 (이력에 기록됨)</label>
+          <input class="edit-note-input" id="edit-note" type="text" placeholder="무엇을 변경했는지 간단히...">
+
+          <div class="publish-warning">
+            <strong>아래 버튼을 누르면 지금 돌아가는 챗봇에 바로 적용됩니다.</strong><br>
+            먼저 「퀵 테스트」 탭에서 확인한 뒤 반영하는 것을 권장합니다.<br>
+            잘못 반영했으면 「버전 이력」 탭에서 롤백하거나, 「코드 원본 복원」으로 되돌릴 수 있습니다.
+          </div>
+
+          <div class="modal-actions" style="margin-top:8px">
+            <button class="btn" onclick="closeModal('edit-modal')">취소 (변경 안 함)</button>
+            <button class="btn danger" id="btn-reset" onclick="resetToCode()" style="display:none" title="이 도구의 모든 수정을 지우고 원래 코드로 돌아갑니다">코드 원본 복원</button>
+            <button class="btn publish-btn" id="btn-publish" onclick="publishCard()">저장 & 즉시 반영</button>
+          </div>
+        </div>
+
+        <!-- 버전 이력 탭 -->
+        <div id="tab-history" style="display:none">
+          <div class="safe-banner">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            이력 조회와 Diff는 안전합니다. 단, <strong style="color:var(--warning)">「롤백」 버튼은 챗봇에 즉시 반영</strong>되니 주의하세요.
+          </div>
+          <div id="history-list"><div class="empty-state">이력이 없습니다.</div></div>
+          <div id="diff-view"></div>
+        </div>
+
+        <!-- 퀵 테스트 탭 -->
+        <div id="tab-eval" style="display:none">
+          <div class="safe-banner">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            이 탭은 읽기 전용입니다. 여기서 뭘 해도 챗봇에 영향 없습니다.
+          </div>
+          <!-- 1. 실시간 쿼리 검색 -->
+          <div class="eval-section">
+            <h4><span class="step-num">1</span> 실시간 쿼리 테스트</h4>
+            <div class="section-desc">
+              아무 질문이나 입력하면, 챗봇이 어떤 도구를 선택할지 미리 확인합니다. 현재 도구가 초록색으로 표시됩니다.
+            </div>
+            <div class="search-test-row">
+              <input id="eval-query" type="text" placeholder="예: 보험료 좀 알아봐줘">
+              <button class="btn primary" onclick="runSearchTest()">검색</button>
+            </div>
+            <div id="eval-search-results"></div>
+          </div>
+
+          <!-- 2. 배치 Recall 평가 -->
+          <div class="eval-section">
+            <h4><span class="step-num">2</span> 자가 성능 평가</h4>
+            <div class="section-desc">
+              이 도구에 등록된 발화 예시를 전부 검색해봅니다. "100%"면 모든 예시가 정확히 이 도구로 연결된다는 뜻입니다.
+            </div>
+            <button class="btn" id="btn-batch" onclick="runBatchEval()">배치 평가 실행</button>
+            <div id="eval-recall-bar" style="margin-top:12px"></div>
+            <div id="eval-batch-details" style="margin-top:8px"></div>
+          </div>
+
+          <!-- 3. LLM Judge -->
+          <div class="eval-section">
+            <h4><span class="step-num">3</span> AI 개선 제안</h4>
+            <div class="section-desc">
+              2단계에서 실패한 쿼리가 있으면, AI가 원인을 분석하고 어떻게 고치면 되는지 구체적으로 제안합니다.
+            </div>
+            <button class="btn" id="btn-judge" onclick="runLlmJudge()" disabled>LLM 분석 실행</button>
+            <div id="eval-judge-result" style="margin-top:12px"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -284,6 +641,17 @@
 let allTools = [];
 let toolCards = {};
 let deleteTarget = '';
+let editName = '';
+let editData = { when_to_use: [], when_not_to_use: [], tags: [] };
+
+function toggleGuide() {
+  const panel = document.getElementById('guide-panel');
+  panel.classList.toggle('collapsed');
+  localStorage.setItem('guide-collapsed', panel.classList.contains('collapsed'));
+}
+if (localStorage.getItem('guide-collapsed') === 'true') {
+  document.getElementById('guide-panel').classList.add('collapsed');
+}
 
 async function fetchHealth() {
   try {
@@ -354,10 +722,13 @@ function renderTable(tools) {
       </td>
       <td>
         <div class="action-btns">
+          <button class="action-btn" onclick="openEdit('${t.name}')" title="편집" style="color:var(--accent-light)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
           <button class="action-btn" onclick="showDetail('${t.name}')" title="상세보기">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           </button>
-          <button class="action-btn del" onclick="openDeleteModal('${t.name}')" title="해제">
+          <button class="action-btn del" onclick="openDeleteModal('${t.name}')" title="이 도구를 해제합니다 (챗봇에 즉시 반영됨)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
         </div>
@@ -455,6 +826,457 @@ function showToast(msg, type) {
 async function refreshAll() {
   await Promise.all([fetchHealth(), fetchTools()]);
 }
+
+// ── Edit ToolCard ──────────────────────────────────────────
+
+async function openEdit(name) {
+  editName = name;
+  document.getElementById('edit-title').textContent = name;
+  document.getElementById('edit-note').value = '';
+  switchEditTab('edit');
+
+  try {
+    const r = await fetch(`/api/admin/toolcards/${name}`);
+    const d = await r.json();
+
+    const src = d.source === 'override' ? 'Override' : d.source === 'code' ? 'Code' : '—';
+    document.getElementById('edit-source').textContent = src;
+    document.getElementById('edit-source').className = 'tag ' + (d.source === 'override' ? 'card' : 'module');
+    document.getElementById('edit-version').textContent = d.version ? `v${d.version}` : 'v0';
+    document.getElementById('btn-reset').style.display = d.source === 'override' ? '' : 'none';
+
+    const card = d.draft || d.effective || {};
+    editData = {
+      when_to_use: [...(card.when_to_use || [])],
+      when_not_to_use: [...(card.when_not_to_use || [])],
+      tags: [...(card.tags || [])],
+    };
+    document.getElementById('edit-purpose').value = card.purpose || '';
+    renderListEditor('wtu', editData.when_to_use);
+    renderListEditor('wntu', editData.when_not_to_use);
+    renderTagEditor(editData.tags);
+
+  } catch(e) {
+    const t = toolCards[name];
+    if (t) {
+      editData = {
+        when_to_use: [...(t.when_to_use || [])],
+        when_not_to_use: [...(t.when_not_to_use || [])],
+        tags: [...(t.tags || [])],
+      };
+      document.getElementById('edit-purpose').value = t.purpose || '';
+      document.getElementById('edit-source').textContent = 'Code';
+      document.getElementById('edit-version').textContent = 'v0';
+      document.getElementById('btn-reset').style.display = 'none';
+      renderListEditor('wtu', editData.when_to_use);
+      renderListEditor('wntu', editData.when_not_to_use);
+      renderTagEditor(editData.tags);
+    }
+  }
+
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+function renderListEditor(key, items) {
+  const container = document.getElementById('edit-' + key);
+  container.innerHTML = items.map((item, i) => `
+    <div class="list-item">
+      <span>${escHtml(item)}</span>
+      <button class="rm-btn" onclick="removeListItem('${key}',${i})">&times;</button>
+    </div>
+  `).join('');
+}
+
+function renderTagEditor(tags) {
+  const container = document.getElementById('edit-tags');
+  container.innerHTML = tags.map((t, i) => `
+    <div class="tag-chip">
+      ${escHtml(t)}
+      <button class="rm-btn" onclick="removeTag(${i})">&times;</button>
+    </div>
+  `).join('');
+}
+
+function addListItem(key) {
+  const input = document.getElementById('new-' + key);
+  const val = input.value.trim();
+  if (!val) return;
+  const dataKey = key === 'wtu' ? 'when_to_use' : 'when_not_to_use';
+  editData[dataKey].push(val);
+  renderListEditor(key, editData[dataKey]);
+  input.value = '';
+  input.focus();
+}
+
+function removeListItem(key, idx) {
+  const dataKey = key === 'wtu' ? 'when_to_use' : 'when_not_to_use';
+  editData[dataKey].splice(idx, 1);
+  renderListEditor(key, editData[dataKey]);
+}
+
+function addTagItem() {
+  const input = document.getElementById('new-tag');
+  const val = input.value.trim();
+  if (!val) return;
+  editData.tags.push(val);
+  renderTagEditor(editData.tags);
+  input.value = '';
+  input.focus();
+}
+
+function removeTag(idx) {
+  editData.tags.splice(idx, 1);
+  renderTagEditor(editData.tags);
+}
+
+async function publishCard() {
+  const ok = confirm(
+    `[즉시 반영] ${editName}\n\n` +
+    `이 변경이 지금 돌아가는 챗봇에 바로 적용됩니다.\n` +
+    `(잘못되면 \"버전 이력\" 탭에서 롤백 가능)\n\n` +
+    `계속 진행할까요?`
+  );
+  if (!ok) return;
+
+  const btn = document.getElementById('btn-publish');
+  btn.disabled = true; btn.textContent = '반영 중...';
+
+  const data = {
+    purpose: document.getElementById('edit-purpose').value.trim(),
+    when_to_use: editData.when_to_use,
+    when_not_to_use: editData.when_not_to_use,
+    tags: editData.tags,
+  };
+
+  if (!data.purpose) {
+    showToast('Purpose는 필수입니다', 'error');
+    btn.disabled = false; btn.textContent = '저장 & 즉시 반영';
+    return;
+  }
+
+  try {
+    const r = await fetch(`/api/admin/toolcards/${editName}/publish`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ data, note: document.getElementById('edit-note').value.trim() || undefined }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      showToast(`${editName} v${d.version} 반영 완료 — 챗봇에 적용됨`, 'success');
+      closeModal('edit-modal');
+      refreshAll();
+    } else {
+      showToast(d.detail || '반영 실패', 'error');
+    }
+  } catch(e) {
+    showToast('요청 실패: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '저장 & 즉시 반영';
+  }
+}
+
+async function resetToCode() {
+  if (!confirm(
+    `[즉시 반영] 코드 원본 복원\n\n` +
+    `${editName}의 모든 수정 내역을 지우고,\n` +
+    `개발자가 작성한 원래 상태로 되돌립니다.\n\n` +
+    `→ 챗봇에 바로 적용됩니다.\n\n계속 진행할까요?`
+  )) return;
+  try {
+    const r = await fetch(`/api/admin/toolcards/${editName}/override`, {method:'DELETE'});
+    if (r.ok) {
+      showToast(`${editName} 코드 원본 복원 완료`, 'success');
+      closeModal('edit-modal');
+      refreshAll();
+    }
+  } catch(e) {
+    showToast('복원 실패: ' + e.message, 'error');
+  }
+}
+
+// ── History / Diff ─────────────────────────────────────────
+
+function switchEditTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('tab-edit').style.display = tab === 'edit' ? '' : 'none';
+  document.getElementById('tab-history').style.display = tab === 'history' ? '' : 'none';
+  document.getElementById('tab-eval').style.display = tab === 'eval' ? '' : 'none';
+  if (tab === 'history') loadHistory();
+}
+
+async function loadHistory() {
+  const container = document.getElementById('history-list');
+  const diffView = document.getElementById('diff-view');
+  diffView.innerHTML = '';
+
+  try {
+    const r = await fetch(`/api/admin/toolcards/${editName}/history`);
+    const d = await r.json();
+    const history = d.history || [];
+
+    if (!history.length) {
+      container.innerHTML = '<div class="empty-state">아직 변경 이력이 없습니다.<br>편집 탭에서 저장 & 반영하면 이력이 생성됩니다.</div>';
+      return;
+    }
+
+    container.innerHTML = history.slice().reverse().map(h => {
+      const ts = new Date(h.timestamp).toLocaleString('ko-KR', {dateStyle:'short',timeStyle:'short'});
+      return `
+        <div class="history-item">
+          <div class="ver">v${h.version}</div>
+          <div class="note">${escHtml(h.note)}</div>
+          <div class="ts">${ts}</div>
+          <div class="history-actions">
+            ${h.previous ? `<button class="action-btn" onclick="showDiff(${h.version})" title="Diff">Diff</button>` : ''}
+            <button class="action-btn" onclick="rollbackTo(${h.version})" title="이 버전으로 롤백" style="color:var(--warning)">롤백</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state">이력 로드 실패</div>';
+  }
+}
+
+async function showDiff(version) {
+  const diffView = document.getElementById('diff-view');
+
+  try {
+    const r = await fetch(`/api/admin/toolcards/${editName}/history`);
+    const d = await r.json();
+    const entry = (d.history || []).find(h => h.version === version);
+    if (!entry || !entry.previous) { diffView.innerHTML = ''; return; }
+
+    const prev = entry.previous;
+    const curr = entry.data;
+    const fields = ['purpose', 'when_to_use', 'when_not_to_use', 'tags'];
+
+    let html = `<div class="diff-block"><strong>v${version - 1} → v${version} 변경사항</strong>`;
+
+    for (const f of fields) {
+      const oldVal = prev[f]; const newVal = curr[f];
+      if (JSON.stringify(oldVal) === JSON.stringify(newVal)) continue;
+
+      html += `<div class="diff-field"><div class="diff-label">${f}</div>`;
+
+      if (Array.isArray(oldVal) && Array.isArray(newVal)) {
+        const removed = oldVal.filter(x => !newVal.includes(x));
+        const added = newVal.filter(x => !oldVal.includes(x));
+        removed.forEach(x => html += `<div class="diff-old">- ${escHtml(x)}</div>`);
+        added.forEach(x => html += `<div class="diff-new">+ ${escHtml(x)}</div>`);
+      } else {
+        html += `<div class="diff-old">- ${escHtml(String(oldVal || ''))}</div>`;
+        html += `<div class="diff-new">+ ${escHtml(String(newVal || ''))}</div>`;
+      }
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+    diffView.innerHTML = html;
+  } catch(e) {
+    diffView.innerHTML = '<div class="empty-state">Diff 로드 실패</div>';
+  }
+}
+
+async function rollbackTo(version) {
+  if (!confirm(
+    `[즉시 반영] v${version} 롤백\n\n` +
+    `현재 적용 중인 카드를 v${version} 내용으로 교체합니다.\n` +
+    `→ 챗봇에 바로 적용됩니다.\n\n계속 진행할까요?`
+  )) return;
+  try {
+    const r = await fetch(`/api/admin/toolcards/${editName}/rollback`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({version}),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      showToast(`${editName} → v${version} 롤백 완료 (새 v${d.version})`, 'success');
+      closeModal('edit-modal');
+      refreshAll();
+    } else {
+      showToast(d.detail || '롤백 실패', 'error');
+    }
+  } catch(e) {
+    showToast('롤백 실패: ' + e.message, 'error');
+  }
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function renderMd(text) {
+  if (!text) return '';
+  let h = escHtml(text);
+  h = h.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  h = h.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  h = h.replace(/^---$/gm, '<hr>');
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+  h = h.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  h = h.replace(/^- (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>');
+  h = h.replace(/\n{2,}/g, '<br><br>');
+  h = h.replace(/\n/g, '<br>');
+  h = h.replace(/<br>(<h[34]>)/g, '$1');
+  h = h.replace(/(<\/h[34]>)<br>/g, '$1');
+  h = h.replace(/<br>(<hr>)/g, '$1');
+  h = h.replace(/(<hr>)<br>/g, '$1');
+  h = h.replace(/<br>(<ul>)/g, '$1');
+  h = h.replace(/(<\/ul>)<br>/g, '$1');
+  return h;
+}
+
+// ── Quick Eval ────────────────────────────────────────────
+
+let lastBatchFailures = [];
+
+async function runSearchTest() {
+  const query = document.getElementById('eval-query').value.trim();
+  if (!query) return;
+
+  const container = document.getElementById('eval-search-results');
+  container.innerHTML = '<div class="spinner"></div> 검색 중...';
+
+  try {
+    const r = await fetch('/api/admin/eval/search', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ query, top_k: 5 }),
+    });
+    const d = await r.json();
+
+    container.innerHTML = d.results.map((hit, i) => {
+      const isTarget = hit.name === editName;
+      const cls = isTarget ? 'is-target' : '';
+      const pct = Math.round(hit.score * 100);
+      return `<div class="search-result ${cls}">
+        <div class="rank">${i + 1}</div>
+        <div class="sr-name">${hit.name}</div>
+        <div class="sr-score-wrap">
+          <div class="sr-score">${(hit.score * 100).toFixed(1)}%</div>
+          <div class="sr-bar"><div class="sr-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="sr-desc">${escHtml(hit.description)}</div>
+        ${isTarget ? '<span style="color:var(--success);font-weight:700;white-space:nowrap">← 현재 도구</span>' : ''}
+      </div>`;
+    }).join('') || '<div style="color:var(--text-muted);font-size:12px">결과 없음</div>';
+  } catch(e) {
+    container.innerHTML = `<div style="color:var(--danger);font-size:12px">검색 실패: ${e.message}</div>`;
+  }
+}
+
+async function runBatchEval() {
+  const btn = document.getElementById('btn-batch');
+  const recallBar = document.getElementById('eval-recall-bar');
+  const details = document.getElementById('eval-batch-details');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 평가 중...';
+  recallBar.innerHTML = ''; details.innerHTML = '';
+  lastBatchFailures = [];
+
+  try {
+    const r = await fetch(`/api/admin/eval/batch/${editName}`, { method: 'POST' });
+    const d = await r.json();
+
+    if (!r.ok) { showToast(d.detail || '평가 실패', 'error'); return; }
+
+    const rc = (v) => v >= 0.9 ? 'good' : v >= 0.7 ? 'ok' : 'bad';
+    recallBar.innerHTML = `
+      <div class="recall-bar">
+        <div class="recall-card">
+          <div class="rc-label">1위 정확도</div>
+          <div class="rc-value ${rc(d.recall_at_1)}">${(d.recall_at_1 * 100).toFixed(0)}%</div>
+          <div class="rc-sub">검색 1위에 나오는 비율</div>
+        </div>
+        <div class="recall-card">
+          <div class="rc-label">Top-3 포함</div>
+          <div class="rc-value ${rc(d.recall_at_3)}">${(d.recall_at_3 * 100).toFixed(0)}%</div>
+          <div class="rc-sub">상위 3개 안에 드는 비율</div>
+        </div>
+        <div class="recall-card">
+          <div class="rc-label">Top-5 포함</div>
+          <div class="rc-value ${rc(d.recall_at_5)}">${(d.recall_at_5 * 100).toFixed(0)}%</div>
+          <div class="rc-sub">상위 5개 안에 드는 비율</div>
+        </div>
+        <div class="recall-card">
+          <div class="rc-label">테스트 수</div>
+          <div class="rc-value" style="color:var(--text)">${d.total}건</div>
+          <div class="rc-sub">등록된 발화 예시 수</div>
+        </div>
+      </div>`;
+
+    lastBatchFailures = d.details.filter(x => !x.pass_at_3);
+
+    details.innerHTML = d.details.map(item => {
+      const pass = item.pass_at_3;
+      const topNames = (item.top_hits || []).slice(0, 3).map(h => h.name).join(', ');
+      return `<div class="batch-detail ${pass ? 'pass' : 'fail'}">
+        <div class="bd-icon">${pass ? '✓' : '✗'}</div>
+        <div class="bd-query">${escHtml(item.query)}</div>
+        <div class="bd-rank">${item.rank ? item.rank + '위' : '—'}</div>
+        <div class="bd-top" title="${topNames}">${topNames}</div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('btn-judge').disabled = lastBatchFailures.length === 0;
+    if (lastBatchFailures.length === 0) {
+      document.getElementById('eval-judge-result').innerHTML =
+        '<div style="color:var(--success);font-size:12px;padding:8px">모든 쿼리가 Top-3에 포함됩니다. LLM 분석이 필요 없습니다.</div>';
+    } else {
+      document.getElementById('eval-judge-result').innerHTML =
+        `<div style="color:var(--warning);font-size:12px;padding:8px">${lastBatchFailures.length}건 실패 — LLM 분석을 실행하세요.</div>`;
+    }
+  } catch(e) {
+    recallBar.innerHTML = `<div style="color:var(--danger);font-size:12px">평가 실패: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '배치 평가 실행';
+  }
+}
+
+async function runLlmJudge() {
+  if (!lastBatchFailures.length) return;
+
+  const btn = document.getElementById('btn-judge');
+  const container = document.getElementById('eval-judge-result');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> LLM 분석 중...';
+  container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px"><span class="spinner"></span> LLM이 실패 원인을 분석하고 있습니다... (10~30초)</div>';
+
+  try {
+    const r = await fetch('/api/admin/eval/judge', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        tool_name: editName,
+        failures: lastBatchFailures,
+      }),
+    });
+    const d = await r.json();
+    container.innerHTML = `<div class="judge-box">${renderMd(d.analysis)}</div>`;
+  } catch(e) {
+    container.innerHTML = `<div style="color:var(--danger);font-size:12px">LLM 분석 실패: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'LLM 분석 실행';
+  }
+}
+
+// ── Enter key support ─────────────────────────────────────
+['new-wtu','new-wntu','new-tag'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (id === 'new-tag') addTagItem();
+      else addListItem(id.replace('new-',''));
+    }
+  });
+});
+
+document.getElementById('eval-query').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); runSearchTest(); }
+});
 
 document.getElementById('search').addEventListener('input', () => renderTable(allTools));
 

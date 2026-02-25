@@ -12,6 +12,9 @@ Endpoints:
   DELETE /api/tools/{tool_name}           — 도구 런타임 해제
   POST   /api/tools/reload-module/{mod}   — 모듈 핫리로드
   GET    /admin/tools                     — Tool Admin UI
+  POST   /api/admin/eval/search           — 단일 쿼리 검색 테스트
+  POST   /api/admin/eval/batch/{name}     — ToolCard 배치 Recall 평가
+  POST   /api/admin/eval/judge            — LLM-as-Judge 실패 분석
 """
 
 from __future__ import annotations
@@ -80,7 +83,16 @@ async def lifespan(app: FastAPI):
     get_graph()
     logger.info("LangGraph compiled")
 
-    # 4. Tool embeddings 초기 인덱싱
+    # 4. ToolCard JSON override 로딩
+    try:
+        from app.tool_search.tool_cards import apply_overrides
+        n = apply_overrides()
+        if n:
+            logger.info("Applied %d ToolCard overrides from JSON", n)
+    except Exception as e:
+        logger.warning("ToolCard override loading skipped: %s", e)
+
+    # 5. Tool embeddings 초기 인덱싱
     try:
         from app.tool_search.embedder import get_tool_search
         searcher = get_tool_search()
@@ -519,6 +531,244 @@ async def admin_list_tools():
             "tags": list(card.tags) if card else [],
         })
     return {"count": len(result), "registry_version": registry.version, "tools": result}
+
+
+# ── ToolCard CRUD API ─────────────────────────────────────────────────────────
+
+def _get_store():
+    from app.tool_search.toolcard_store import get_toolcard_store
+    return get_toolcard_store(on_publish=_on_card_publish)
+
+
+def _on_card_publish(card) -> None:
+    """ToolCard publish 후 ChromaDB 재인덱싱 트리거."""
+    try:
+        from app.tool_search.embedder import get_tool_search
+        registry = get_tool_registry()
+        get_tool_search().index_tools(registry.get_all())
+        logger.info("ChromaDB re-indexed after ToolCard publish (%s)", card.name)
+    except Exception as e:
+        logger.warning("ChromaDB re-index after card publish failed: %s", e)
+
+
+@app.get("/api/admin/toolcards/{name}")
+async def get_toolcard(name: str):
+    """ToolCard 상세 — published/draft/code 원본 + 상태."""
+    from app.tool_search.tool_cards import CODE_REGISTRY, REGISTRY
+
+    store = _get_store()
+    status = store.get_status(name)
+    draft = store.get_draft(name)
+    effective = REGISTRY.get(name)
+    code_card = CODE_REGISTRY.get(name)
+
+    return {
+        **status,
+        "effective": {
+            "purpose": effective.purpose,
+            "when_to_use": list(effective.when_to_use),
+            "when_not_to_use": list(effective.when_not_to_use),
+            "tags": list(effective.tags),
+        } if effective else None,
+        "code_original": {
+            "purpose": code_card.purpose,
+            "when_to_use": list(code_card.when_to_use),
+            "when_not_to_use": list(code_card.when_not_to_use),
+            "tags": list(code_card.tags),
+        } if code_card else None,
+        "draft": draft,
+    }
+
+
+@app.put("/api/admin/toolcards/{name}/draft")
+async def save_toolcard_draft(name: str, request: Request):
+    """ToolCard draft 저장. 챗봇에는 미반영."""
+    body = await request.json()
+    store = _get_store()
+    draft = store.save_draft(name, body)
+    return {"status": "draft_saved", "name": name, "draft": draft}
+
+
+@app.post("/api/admin/toolcards/{name}/publish")
+async def publish_toolcard(name: str, request: Request):
+    """Draft → Published. 메모리 + ChromaDB 즉시 반영."""
+    body = await request.json()
+    note = body.get("note", "")
+    store = _get_store()
+
+    has_draft = store.get_draft(name)
+    if not has_draft:
+        data = body.get("data")
+        if not data:
+            raise HTTPException(400, "No draft exists and no data provided")
+        store.save_draft(name, data)
+
+    card = store.publish(name, note)
+    status = store.get_status(name)
+    return {"status": "published", "name": name, "version": status["version"]}
+
+
+@app.post("/api/admin/toolcards/{name}/rollback")
+async def rollback_toolcard(name: str, request: Request):
+    """특정 버전으로 롤백."""
+    body = await request.json()
+    target_version = body.get("version")
+    if not target_version:
+        raise HTTPException(400, "version is required")
+    store = _get_store()
+    card = store.rollback(name, int(target_version))
+    status = store.get_status(name)
+    return {"status": "rolled_back", "name": name, "version": status["version"]}
+
+
+@app.get("/api/admin/toolcards/{name}/history")
+async def toolcard_history(name: str):
+    """버전 이력 조회."""
+    store = _get_store()
+    history = store.get_history(name)
+    return {"name": name, "history": history}
+
+
+@app.delete("/api/admin/toolcards/{name}/override")
+async def reset_toolcard(name: str):
+    """Override 제거 → 코드 원본 카드로 복원."""
+    store = _get_store()
+    card = store.reset_to_code(name)
+    return {"status": "reset_to_code", "name": name, "has_code_card": card is not None}
+
+
+@app.post("/api/admin/toolcards/{name}/discard-draft")
+async def discard_toolcard_draft(name: str):
+    """Draft 폐기."""
+    store = _get_store()
+    store.discard_draft(name)
+    return {"status": "draft_discarded", "name": name}
+
+
+# ── Quick Eval API ────────────────────────────────────────────────────────────
+
+@app.post("/api/admin/eval/search")
+async def eval_search(request: Request):
+    """단일 쿼리 → top-k 검색 결과 반환. 실시간 라우팅 확인용."""
+    body = await request.json()
+    query = body.get("query", "").strip()
+    top_k = body.get("top_k", 5)
+    if not query:
+        raise HTTPException(400, "query is required")
+
+    from app.tool_search.embedder import get_tool_search
+    candidates = get_tool_search().search(query, top_k=top_k)
+    return {
+        "query": query,
+        "results": [
+            {"name": c.name, "score": c.score, "description": c.description[:80]}
+            for c in candidates
+        ],
+    }
+
+
+@app.post("/api/admin/eval/batch/{tool_name}")
+async def eval_batch(tool_name: str):
+    """ToolCard의 when_to_use 전체를 검색하여 Recall@1/3/5 산출."""
+    from app.tool_search.tool_cards import REGISTRY
+    from app.tool_search.embedder import get_tool_search
+
+    card = REGISTRY.get(tool_name)
+    if not card or not card.when_to_use:
+        raise HTTPException(404, f"No ToolCard or when_to_use for '{tool_name}'")
+
+    searcher = get_tool_search()
+    details = []
+    for query in card.when_to_use:
+        hits = searcher.search(query, top_k=5)
+        rank = next(
+            (i + 1 for i, c in enumerate(hits) if c.name == tool_name), None
+        )
+        details.append({
+            "query": query,
+            "rank": rank,
+            "pass_at_3": rank is not None and rank <= 3,
+            "top_hits": [
+                {"name": c.name, "score": c.score} for c in hits[:5]
+            ],
+        })
+
+    n = len(details)
+    return {
+        "tool_name": tool_name,
+        "total": n,
+        "recall_at_1": round(sum(1 for d in details if d["rank"] == 1) / n, 4) if n else 0,
+        "recall_at_3": round(sum(1 for d in details if d["pass_at_3"]) / n, 4) if n else 0,
+        "recall_at_5": round(sum(1 for d in details if d["rank"] and d["rank"] <= 5) / n, 4) if n else 0,
+        "details": details,
+    }
+
+
+@app.post("/api/admin/eval/judge")
+async def eval_judge(request: Request):
+    """LLM-as-Judge: 실패 케이스를 분석하고 ToolCard 개선안을 제안."""
+    body = await request.json()
+    tool_name = body.get("tool_name", "")
+    failures = body.get("failures", [])
+
+    if not tool_name or not failures:
+        raise HTTPException(400, "tool_name and failures are required")
+
+    from app.tool_search.tool_cards import REGISTRY
+    from app.llm import get_llm
+
+    card = REGISTRY.get(tool_name)
+    card_info = ""
+    if card:
+        card_info = (
+            f"purpose: {card.purpose}\n"
+            f"when_to_use: {list(card.when_to_use)}\n"
+            f"when_not_to_use: {list(card.when_not_to_use)}\n"
+            f"tags: {list(card.tags)}"
+        )
+
+    failure_lines = []
+    for f in failures[:10]:
+        top_str = ", ".join(
+            f"{h['name']}({h['score']})" for h in f.get("top_hits", [])[:3]
+        )
+        failure_lines.append(
+            f"  쿼리: \"{f['query']}\"  → 상위결과: [{top_str}]  "
+            f"(expected: {tool_name}, rank: {f.get('rank', 'N/A')})"
+        )
+
+    prompt = f"""당신은 Tool Routing 전문가입니다. 아래 도구의 ToolCard 정보와, 해당 도구로 라우팅되어야 했지만 실패한 쿼리들을 분석해주세요.
+
+## 도구: {tool_name}
+{card_info}
+
+## 실패 케이스 ({len(failure_lines)}건)
+{chr(10).join(failure_lines)}
+
+## 요청사항
+1. 각 실패 쿼리가 왜 다른 도구로 라우팅되었는지 원인을 분석하세요.
+2. ToolCard를 어떻게 수정하면 이 쿼리들이 올바르게 라우팅될지 구체적으로 제안하세요.
+   - 추가할 when_to_use 예시
+   - 추가할 tags
+   - 수정할 purpose
+3. 주의: when_to_use에 이미 있는 쿼리와 너무 유사한 문장은 효과가 적습니다. 다양한 표현을 제안하세요.
+
+한국어로 간결하게 답변하세요."""
+
+    llm = get_llm()
+    try:
+        result = await llm.ainvoke(prompt)
+        analysis = result.content if hasattr(result, "content") else str(result)
+        analysis = _strip_think(analysis)
+    except Exception as e:
+        logger.warning("LLM Judge failed: %s", e)
+        analysis = f"LLM 분석 실패: {e}"
+
+    return {
+        "tool_name": tool_name,
+        "failure_count": len(failures),
+        "analysis": analysis,
+    }
 
 
 # ── UI ────────────────────────────────────────────────────────────────────────
