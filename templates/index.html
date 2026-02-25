@@ -675,20 +675,26 @@
     .catalog-btn:hover { border-color: var(--accent); color: var(--accent-light); }
 
     @media (max-width: 640px) {
-      .product-grid { grid-template-columns: 1fr; gap: 8px; }
-      .modal-box { border-radius: 12px; max-height: 90vh; }
-      .modal-header { padding: 12px 14px; }
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal-box {
+        border-radius: 16px 16px 0 0; max-height: 75vh;
+        width: 100%; max-width: 100%;
+      }
+      .modal-header { padding: 14px 16px; }
       .modal-header h2 { font-size: 14px; }
-      .modal-body { padding: 10px 12px; }
-      .product-card { padding: 10px 12px; }
-      .product-card .pc-name { font-size: 13px; }
-      .product-card .pc-highlights { font-size: 11px; }
-    }
-    @media (max-width: 380px) {
-      .modal-overlay { padding: 6px; }
-      .modal-box { max-height: 92vh; border-radius: 10px; }
-      .product-card .pc-meta { gap: 4px; }
-      .product-card .pc-tag { font-size: 9px; padding: 1px 5px; }
+      .modal-body { padding: 6px 10px; }
+      .product-grid { grid-template-columns: 1fr; gap: 0; }
+      .product-card {
+        border-radius: 0; border-left: none; border-right: none;
+        border-top: none; padding: 11px 14px;
+        background: transparent;
+      }
+      .product-card:last-child { border-bottom: none; }
+      .product-card:active { background: var(--surface2); }
+      .product-card .pc-name { font-size: 13px; margin-bottom: 3px; }
+      .product-card .pc-meta { margin-bottom: 0; }
+      .product-card .pc-highlights { display: none; }
+      .product-card .pc-tag { font-size: 9px; padding: 1px 6px; }
     }
   </style>
 </head>
