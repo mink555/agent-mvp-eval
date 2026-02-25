@@ -3,10 +3,15 @@
 State(상태) / Reducer(누적) / Node(행동) / Edge(분기) / IO Adapter(래퍼)
 
 Endpoints:
-  POST /api/chat        — 동기 응답
-  POST /api/chat/stream — SSE 스트리밍 (노드 진행 + 토큰 스트리밍)
-  GET  /api/health      — 헬스체크
-  GET  /api/tools       — 도구 카탈로그
+  POST   /api/chat                        — 동기 응답
+  POST   /api/chat/stream                 — SSE 스트리밍
+  GET    /api/health                      — 헬스체크
+  GET    /api/tools                       — 도구 카탈로그
+  GET    /api/products                    — 상품 카탈로그
+  GET    /api/admin/tools                 — Admin 도구 상세 (ToolCard 포함)
+  DELETE /api/tools/{tool_name}           — 도구 런타임 해제
+  POST   /api/tools/reload-module/{mod}   — 모듈 핫리로드
+  GET    /admin/tools                     — Tool Admin UI
 """
 
 from __future__ import annotations
@@ -488,13 +493,13 @@ async def debug_state(thread_id: str):
 @app.get("/api/admin/tools")
 async def admin_list_tools():
     """Admin UI용 상세 도구 카탈로그 — ToolCard 메타데이터 포함."""
-    from app.tool_search.tool_cards import get_card, REGISTRY as CARD_REGISTRY
+    from app.tool_search.tool_cards import get_card
+    from app.tools import _TOOL_MODULES
 
     registry = get_tool_registry()
     tools = registry.get_all()
 
     tool_modules: dict[str, str] = {}
-    from app.tools import _TOOL_MODULES
     for mod in _TOOL_MODULES:
         mod_name = mod.__name__.rsplit(".", 1)[-1]
         for t in getattr(mod, "TOOLS", []):
