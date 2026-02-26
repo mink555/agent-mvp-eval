@@ -145,7 +145,7 @@ def rider_get(rider_code: str) -> str:
 @tool(args_schema=ProductCodeInput)
 def eligibility_by_product_rule(product_code: str) -> str:
     """상품 규정상 가입 자격 조건(연령 범위·판매 채널·간편심사 여부)을 확인합니다.
-    특정 고객 병력 기반 인수 판단은 underwriting_precheck 사용."""
+    계약자 병력 기반 인수 판단은 underwriting_precheck 사용."""
     p = PRODUCTS.get(product_code)
     if not p:
         return _json({"error": f"상품 '{product_code}' 없음"})
@@ -157,9 +157,9 @@ def eligibility_by_product_rule(product_code: str) -> str:
     }
     special = []
     if product_code == "B00115023":
-        special.append("기존 당사 암보험 정상 유지 고객만 가입 가능")
+        special.append("기존 당사 암보험 정상 유지 계약자만 가입 가능")
     if p.get("simplified_underwriting"):
-        special.append("간편심사 대상(유병력자 등 일반심사 어려운 고객)")
+        special.append("간편심사 대상(유병력자 등 일반심사 어려운 계약자)")
     return _json({"product_code": product_code, "name": p["name"], "conditions": conditions, "special_requirements": special})
 
 

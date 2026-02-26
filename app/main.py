@@ -688,7 +688,7 @@ async def eval_generate_queries(request: Request):
 
     prompt = f"""당신은 보험 챗봇의 Tool Routing 테스트 전문가입니다.
 
-아래 도구에 대해 실제 고객이 할 법한 다양한 테스트 질문을 {count}개 생성하세요.
+아래 도구에 대해 실제 계약자가 할 법한 다양한 테스트 질문을 {count}개 생성하세요.
 
 ## 도구: {tool_name}
 - 목적: {card.purpose}

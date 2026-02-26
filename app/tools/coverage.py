@@ -56,7 +56,7 @@ class MultiBenefitInput(BaseModel):
 
 class RiderBundleInput(BaseModel):
     product_code: str = Field(..., description="상품 코드 (예: B00172014)")
-    goal: str = Field(default="", description="고객 보장 목표 (예: 입원, 수술, 간병)")
+    goal: str = Field(default="", description="계약자 보장 목표 (예: 입원, 수술, 간병)")
 
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ def multi_benefit_conflict_rule(product_code: str, treatments: str = "") -> str:
 
 @tool(args_schema=RiderBundleInput)
 def rider_bundle_recommend(product_code: str, goal: str = "") -> str:
-    """고객 목표에 맞는 특약 조합을 추천합니다."""
+    """계약자 목표에 맞는 특약 조합을 추천합니다."""
     riders = RIDERS.get(product_code, [])
     if not riders:
         return _json({"error": f"상품 '{product_code}'의 특약 정보 없음"})
@@ -198,7 +198,7 @@ def rider_bundle_recommend(product_code: str, goal: str = "") -> str:
     return _json({
         "product_code": product_code, "goal": goal,
         "recommendations": recommendations[:3],
-        "note": "고객의 보장 니즈와 예산에 따라 최종 결정해 주세요.",
+        "note": "계약자의 보장 니즈와 예산에 따라 최종 결정해 주세요.",
     })
 
 
