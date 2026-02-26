@@ -178,16 +178,24 @@ python -m scripts.eval_tool_recall --verbose     # 오판 사례 상세
 
 | # | 시나리오 | 턴 | 핵심 검증 포인트 | 사용된 도구 |
 |---|---------|:--:|-----------------|------------|
-| 1 | **기가입 고객 암 진단 → 청구** | 4 | 기보유 계약 조회 → 보험금 청구 안내 (가입 거절이 아님) → 서류 안내 → 추가보장 추천 | customer_contract_lookup, coverage_detail, claim_guide |
-| 2 | **기가입 고객 추가 상품 설계** | 4 | 보유 계약 확인 → 중복 안 되는 상품 추천 → 비교 → 합산 보험료 | customer_contract_lookup, product_search, premium_compare |
-| 3 | **해지된 보험 부활 + 대안** | 4 | active/terminated 구분 → 부활 절차 → 대안 상품 → 기존 보장 확인 | customer_contract_lookup, contract_manage, underwriting_precheck |
-| 4 | **고위험 직업 + 유병력 심사** | 4 | 직업 위험등급 → 인수심사 → 거절 조건 → 간편심사 대안 | underwriting_high_risk_job_check, underwriting_precheck, product_search |
-| 5 | **시니어 종합 설계** | 4 | 70세 상품 검색 → 보장/연금전환 → 가입 조건 → 합산 보험료 | product_search, coverage_summary, premium_estimate |
+| 1 | **기가입 계약자 암 진단 → 청구** | 4 | 계약 조회(2건 active) → 암진단 보험금 청구 안내 → 서류 목록 → 추가 암/건강보험 추천 | customer_contract_lookup, claim_guide |
+| 2 | **기가입 계약자 추가 상품 설계** | 4 | 계약 확인(ID/나이/성별 + 3건) → 치매보험 2종 추천 → 보장/보험료 비교 → 합산 보험료 산출 | customer_contract_lookup, product_search, product_compare, premium_compare, premium_estimate |
+| 3 | **해지된 보험 부활 + 대안** | 4 | active/terminated 구분 → 부활 요건(3년·연체보험료·면책 재적용) → 대안 암보험 → 종신보험+암 추가 | customer_contract_lookup, underwriting_reinstatement_rule, rider_bundle_recommend |
+| 4 | **고위험 직업 + 유병력 심사** | 4 | 택시기사 할증 판정 → 고혈압 인수심사 → 간편심사 대안 → 보험료 산출 | underwriting_high_risk_job_check, underwriting_precheck, premium_estimate |
+| 5 | **시니어 종합 설계** | 4 | 68세 종신+치매 추천 → 연금전환 조건 → 가입 조건(나이/채널) → 합산 보험료 | product_search, coverage_summary, eligibility_by_product_rule, premium_estimate |
 
-**기가입 고객 맥락 처리:**
-- 고객 이름으로 `customer_contract_lookup` 호출 → 보유 계약(active/terminated) 즉시 확인
+**계약자 정보 처리:**
+- 계약자 이름으로 `customer_contract_lookup` 호출 → ID·성별·나이 + 보유 계약(active/terminated) 즉시 확인
+- 반환 데이터에서 전화번호 등 PII를 소스 레벨에서 필터링 (safe_customer/safe_contract)
 - 기가입 상품에서 질병 진단 시 → 가입 불가가 아닌 **보험금 청구 절차 안내**로 전환
 - 보유 계약 기반 중복 가입 여부 확인 후 추가 상품 추천
+- 대화 내내 계약자 맥락 유지 (같은 ID/이름을 재요구하지 않음)
+
+**출력 품질 관리:**
+- 상품코드(B00...) 출력 가드레일에서 자동 제거
+- 내부 도구명(snake_case) 출력 가드레일에서 자동 제거
+- 면책 문구 중복 방지 (LLM 생성분이 있으면 가드레일 추가 생략)
+- 응답 최대 7줄, 핵심 정보만 간결하게 전달
 
 **후속 단답 처리:**
 - "아버지" → 남성(M)으로 인식, "어머니" → 여성(F)으로 인식
@@ -209,7 +217,7 @@ START → [input_guardrail] → [query_rewriter] → [agent ↔ tools] → [outp
 | query_rewriter | "그거 얼마야?" 같은 후속질문을 이전 맥락으로 재작성 | 0~1s |
 | agent | ChromaDB Top-K 검색 → LLM 도구 호출 | 1~5s |
 | tools | ToolRegistry 동적 디스패치 → 도구 실행 | 10~100ms |
-| output_guardrail | PII·금칙어 검사 + 면책 문구 자동 추가 | <2ms |
+| output_guardrail | PII·금칙어·상품코드·도구명 제거 + 면책 문구 자동 추가 | <2ms |
 
 쿼리 재작성은 Advanced RAG 핵심 기법인 Query Transformation에 해당함 [(참고)](https://www.promptingguide.ai/research/rag).
 

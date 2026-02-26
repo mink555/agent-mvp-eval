@@ -317,9 +317,13 @@ _TOOL_NAME_PATTERN = re.compile(
 )
 
 
+_PRODUCT_CODE_PATTERN = re.compile(r'\(?\s*B\d{5,}\s*\)?')
+
 def sanitize_tool_names(text: str) -> str:
-    """응답에서 내부 도구명(snake_case 함수명)을 제거한다."""
-    return _TOOL_NAME_PATTERN.sub('', text).replace('  ', ' ').strip()
+    """응답에서 내부 도구명(snake_case 함수명)과 상품코드(B00...)를 제거한다."""
+    text = _TOOL_NAME_PATTERN.sub('', text)
+    text = _PRODUCT_CODE_PATTERN.sub('', text)
+    return re.sub(r'  +', ' ', text).strip()
 
 
 def check_empty_response_post(text: str) -> GuardrailResult:
@@ -487,9 +491,10 @@ def output_guardrail(state: AgentState) -> dict:
     tools_used = extract_tools_used(state["messages"])
     disclaimer = _select_disclaimer(tools_used)
 
+    existing_disclaimers = cleaned.count('\n※ ')
     text_changed = cleaned != text
 
-    if disclaimer and disclaimer not in cleaned:
+    if disclaimer and disclaimer not in cleaned and existing_disclaimers < 1:
         amended = f"{cleaned.rstrip()}\n\n※ {disclaimer}"
         return {
             "messages": [AIMessage(content=amended, id=last_msg.id)],
