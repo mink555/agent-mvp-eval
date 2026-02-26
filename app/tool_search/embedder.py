@@ -68,11 +68,13 @@ def _tool_documents(tool: BaseTool) -> list[tuple[str, str]]:
 
 
 def _compute_tools_hash(tools: list[BaseTool] | tuple[BaseTool, ...]) -> str:
-    """도구 목록 + 카드 내용 + 인덱싱 스키마 버전의 변경 여부를 감지하는 해시.
+    """도구 목록 + 카드 내용 + 인덱싱 스키마 버전 + 임베딩 모델의 변경 여부를 감지하는 해시.
 
     _INDEX_SCHEMA_VERSION 을 올리면 ToolCard 내용이 같아도 재인덱싱이 트리거된다.
+    임베딩 모델이 바뀌어도 재인덱싱이 트리거된다.
     """
-    content = f"schema:{_INDEX_SCHEMA_VERSION}|" + "|".join(
+    model_name = get_settings().embedding_model
+    content = f"schema:{_INDEX_SCHEMA_VERSION}|model:{model_name}|" + "|".join(
         f"{t.name}:{get_card(t.name).to_embed_text() if get_card(t.name) else t.description}"
         for t in sorted(tools, key=lambda x: x.name)
     )
