@@ -40,16 +40,18 @@ def init_db(seed: bool = True) -> sqlite3.Connection:
         );
 
         CREATE TABLE IF NOT EXISTS contracts (
-            contract_id   TEXT PRIMARY KEY,
-            customer_id   TEXT NOT NULL REFERENCES customers(customer_id),
-            product_code  TEXT NOT NULL,
-            product_name  TEXT NOT NULL,
-            insured_name  TEXT,
-            status        TEXT NOT NULL DEFAULT 'active'
-                          CHECK(status IN ('active', 'lapsed', 'terminated', 'expired')),
-            start_date    TEXT NOT NULL,
-            end_date      TEXT,
-            channel       TEXT
+            contract_id      TEXT PRIMARY KEY,
+            customer_id      TEXT NOT NULL REFERENCES customers(customer_id),
+            product_code     TEXT NOT NULL,
+            product_name     TEXT NOT NULL,
+            insured_name     TEXT,
+            status           TEXT NOT NULL DEFAULT 'active'
+                             CHECK(status IN ('active', 'lapsed', 'terminated', 'expired')),
+            start_date       TEXT NOT NULL,
+            end_date         TEXT,
+            terminated_date  TEXT,
+            renewal_date     TEXT,
+            channel          TEXT
         );
 
         CREATE TABLE IF NOT EXISTS enrollment_rules (
@@ -90,30 +92,44 @@ def _seed_data(cur: sqlite3.Cursor) -> None:
     )
 
     # ── 계약 (insured_name = 피보험자) ──
+    # (contract_id, customer_id, product_code, product_name, insured_name,
+    #  status, start_date, end_date, terminated_date, renewal_date, channel)
     contracts = [
-        # 김민수: 치아보험 + 암보험 보유
-        ("CT-001", "C001", "B00197011", "무배당 THE 건강한치아보험 V", "김민수", "active", "2023-01-15", "2033-01-15", "TM"),
-        ("CT-002", "C001", "B00115023", "무배당 뉴스타트암보험(갱신형)", "김민수", "active", "2023-06-01", "2033-06-01", "CM"),
+        # 김민수: 치아보험 + 암보험(갱신형) 보유
+        ("CT-001", "C001", "B00197011", "무배당 THE 건강한치아보험 V",
+         "김민수", "active", "2023-01-15", "2033-01-15", None, None, "TM"),
+        ("CT-002", "C001", "B00115023", "무배당 뉴스타트암보험(갱신형)",
+         "김민수", "active", "2023-06-01", "2033-06-01", None, "2024-06-01", "CM"),
         # 이영희: 치아보험만
-        ("CT-003", "C002", "B00197011", "무배당 THE 건강한치아보험 V", "이영희", "active", "2022-09-01", "2032-09-01", "TM"),
-        # 박철수: 간편건강 + 간편정기
-        ("CT-004", "C003", "B00172014", "무배당 THE 간편한건강보험(갱신형)", "박철수", "active", "2024-01-01", "2034-01-01", "온라인"),
-        ("CT-005", "C003", "B00155017", "무배당 THE 간편고지정기보험(갱신형)", "박철수", "active", "2024-01-01", "2034-01-01", "온라인"),
-        # 최수진: 종신보험(피보험자=본인) + 해지된 암보험
-        ("CT-006", "C004", "B00312011", "무배당 THE 간편고지종신보험", "최수진", "active", "2023-03-01", None, "CM"),
-        ("CT-007", "C004", "B00115023", "무배당 뉴스타트암보험(갱신형)", "최수진", "terminated", "2021-01-01", "2023-12-31", "TM"),
+        ("CT-003", "C002", "B00197011", "무배당 THE 건강한치아보험 V",
+         "이영희", "active", "2022-09-01", "2032-09-01", None, None, "TM"),
+        # 박철수: 간편건강(갱신형) + 간편정기(갱신형)
+        ("CT-004", "C003", "B00172014", "무배당 THE 간편한건강보험(갱신형)",
+         "박철수", "active", "2024-01-01", "2034-01-01", None, "2025-01-01", "온라인"),
+        ("CT-005", "C003", "B00155017", "무배당 THE 간편고지정기보험(갱신형)",
+         "박철수", "active", "2024-01-01", "2034-01-01", None, "2025-01-01", "온라인"),
+        # 최수진: 종신보험(유지) + 해지된 암보험
+        ("CT-006", "C004", "B00312011", "무배당 THE 간편고지종신보험",
+         "최수진", "active", "2023-03-01", None, None, None, "CM"),
+        ("CT-007", "C004", "B00115023", "무배당 뉴스타트암보험(갱신형)",
+         "최수진", "terminated", "2021-01-01", "2031-01-01", "2023-12-31", None, "TM"),
         # 정대영: 계약 없음 (신규)
         # 한미라: 치아보험 보유
-        ("CT-008", "C006", "B00197011", "무배당 THE 건강한치아보험 V", "한미라", "active", "2024-06-01", "2034-06-01", "TM"),
-        # 오세훈: 암보험 보유 (피보험자=배우자)
-        ("CT-009", "C007", "B00115023", "무배당 뉴스타트암보험(갱신형)", "오세훈", "active", "2023-09-01", "2033-09-01", "CM"),
-        # 윤지은: 간편건강 + 치아 + 종신
-        ("CT-010", "C008", "B00172014", "무배당 THE 간편한건강보험(갱신형)", "윤지은", "active", "2022-06-01", "2032-06-01", "TM"),
-        ("CT-011", "C008", "B00197011", "무배당 THE 건강한치아보험 V", "윤지은", "active", "2023-01-01", "2033-01-01", "CM"),
-        ("CT-012", "C008", "B00312011", "무배당 THE 간편고지종신보험", "윤지은", "active", "2024-01-01", None, "온라인"),
+        ("CT-008", "C006", "B00197011", "무배당 THE 건강한치아보험 V",
+         "한미라", "active", "2024-06-01", "2034-06-01", None, None, "TM"),
+        # 오세훈: 암보험(갱신형) 보유 (피보험자=배우자)
+        ("CT-009", "C007", "B00115023", "무배당 뉴스타트암보험(갱신형)",
+         "오세훈", "active", "2023-09-01", "2033-09-01", None, "2024-09-01", "CM"),
+        # 윤지은: 간편건강(갱신형) + 치아 + 종신
+        ("CT-010", "C008", "B00172014", "무배당 THE 간편한건강보험(갱신형)",
+         "윤지은", "active", "2022-06-01", "2032-06-01", None, "2023-06-01", "TM"),
+        ("CT-011", "C008", "B00197011", "무배당 THE 건강한치아보험 V",
+         "윤지은", "active", "2023-01-01", "2033-01-01", None, None, "CM"),
+        ("CT-012", "C008", "B00312011", "무배당 THE 간편고지종신보험",
+         "윤지은", "active", "2024-01-01", None, None, None, "온라인"),
     ]
     cur.executemany(
-        "INSERT INTO contracts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", contracts
+        "INSERT INTO contracts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", contracts
     )
 
     # ── 가입 규칙 ──
