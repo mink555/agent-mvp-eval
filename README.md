@@ -172,6 +172,27 @@ python -m scripts.eval_tool_recall --verbose     # 오판 사례 상세
 **54개 → 5개로 90% 축소해도 Recall@5 = 100%, MRR = 0.98.
 정확도를 유지하면서 비용과 지연을 동시에 줄임.**
 
+### 5-1. 멀티턴 시나리오 실행 결과
+
+5개 TMR 실전 상담 시나리오를 구축하여 end-to-end 검증을 수행함.
+
+| # | 시나리오 | 턴 | 핵심 검증 포인트 | 사용된 도구 |
+|---|---------|:--:|-----------------|------------|
+| 1 | **기가입 고객 암 진단 → 청구** | 4 | 기보유 계약 조회 → 보험금 청구 안내 (가입 거절이 아님) → 서류 안내 → 추가보장 추천 | customer_contract_lookup, coverage_detail, claim_guide |
+| 2 | **기가입 고객 추가 상품 설계** | 4 | 보유 계약 확인 → 중복 안 되는 상품 추천 → 비교 → 합산 보험료 | customer_contract_lookup, product_search, premium_compare |
+| 3 | **해지된 보험 부활 + 대안** | 4 | active/terminated 구분 → 부활 절차 → 대안 상품 → 기존 보장 확인 | customer_contract_lookup, contract_manage, underwriting_precheck |
+| 4 | **고위험 직업 + 유병력 심사** | 4 | 직업 위험등급 → 인수심사 → 거절 조건 → 간편심사 대안 | underwriting_high_risk_job_check, underwriting_precheck, product_search |
+| 5 | **시니어 종합 설계** | 4 | 70세 상품 검색 → 보장/연금전환 → 가입 조건 → 합산 보험료 | product_search, coverage_summary, premium_estimate |
+
+**기가입 고객 맥락 처리:**
+- 고객 이름으로 `customer_contract_lookup` 호출 → 보유 계약(active/terminated) 즉시 확인
+- 기가입 상품에서 질병 진단 시 → 가입 불가가 아닌 **보험금 청구 절차 안내**로 전환
+- 보유 계약 기반 중복 가입 여부 확인 후 추가 상품 추천
+
+**후속 단답 처리:**
+- "아버지" → 남성(M)으로 인식, "어머니" → 여성(F)으로 인식
+- query_rewriter가 1~3글자 단답을 이전 맥락에 합쳐서 완전한 질문으로 재작성
+
 ---
 
 ## 6. 구현 상세
