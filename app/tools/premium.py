@@ -40,6 +40,7 @@ class AmountSuggestInput(BaseModel):
 class RenewalProjectionInput(BaseModel):
     product_code: str = Field(..., description="상품 코드 (갱신형 상품, 예: B00115023)")
     age: int | None = Field(default=None, description="현재 나이. 사용자가 언급하지 않았으면 null")
+    gender: str | None = Field(default=None, description="성별 (M 또는 F). 사용자가 언급하지 않았으면 null")
     horizon: int = Field(default=20, ge=1, le=50, description="추정 기간 (년)")
 
 
@@ -158,9 +159,9 @@ def amount_suggest(product_code: str, income: int = 0, goal: str = "") -> str:
 
 
 @tool(args_schema=RenewalProjectionInput)
-def renewal_premium_projection(product_code: str, age: int | None = None, horizon: int = 20) -> str:
+def renewal_premium_projection(product_code: str, age: int | None = None, gender: str | None = None, horizon: int = 20) -> str:
     """갱신형 상품의 갱신 시점별 예상 보험료를 추정합니다."""
-    guard = _guard_user_info({"나이": age})
+    guard = _guard_user_info({"나이": age, "성별": gender})
     if guard:
         return guard
     p = PRODUCTS.get(product_code)
@@ -172,7 +173,7 @@ def renewal_premium_projection(product_code: str, age: int | None = None, horizo
     projections = []
     for i in range(0, horizon, term):
         future_age = age + i
-        monthly = _calc_premium(product_code, future_age, "M")
+        monthly = _calc_premium(product_code, future_age, gender)
         if monthly:
             projections.append({"age": future_age, "monthly": f"{monthly:,}원"})
     return _json({

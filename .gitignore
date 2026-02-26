@@ -22,6 +22,7 @@ chroma_data/
 .DS_Store
 *.swp
 *.swo
+README.pdf
 
 .idea/
 .vscode/
