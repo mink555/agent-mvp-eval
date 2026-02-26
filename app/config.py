@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     chromadb_persist_dir: str = "./chroma_data"
     chromadb_tool_collection: str = "tool_embeddings"
     chromadb_doc_collection: str = "rag_documents"
-    embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
+    embedding_model: str = "intfloat/multilingual-e5-large"
 
     # ── Search / RAG ──────────────────────────────────────
     tool_search_top_k: int = Field(default=5, ge=1, le=100)

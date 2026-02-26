@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -e .
 
 COPY . .
 
+ENV EMBEDDING_MODEL=intfloat/multilingual-e5-large
 RUN python scripts/init_vectordb.py
 
 ENV API_PORT=7860
