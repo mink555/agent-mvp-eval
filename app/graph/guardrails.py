@@ -7,7 +7,7 @@
 
 구조:
   input_guardrail  — 사용자 입력 검증 (프롬프트 인젝션, 도메인 외 질문)
-  output_guardrail — LLM 출력 검증 (개인정보·금칙어·빈 응답) + 면책 문구 주입
+  output_guardrail — LLM 출력 검증 (PII패턴·금칙어·빈 응답) + 면책 문구 주입
 """
 
 from __future__ import annotations

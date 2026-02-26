@@ -6,8 +6,8 @@
 프롬프트 목록:
   [상품]   analyze_product        상품 종합 분석
   [상품]   compare_products       2개 상품 비교 분석
-  [상담]   consultation_guide     고객 맞춤 상담 가이드
-  [상담]   needs_analysis         고객 니즈 파악 질문 생성
+  [상담]   consultation_guide     계약자 맞춤 상담 가이드
+  [상담]   needs_analysis         계약자 니즈 파악 질문 생성
   [심사]   underwriting_review    가입 심사 종합 검토
   [준법]   compliance_review      스크립트/멘트 준법 검토
   [준법]   sales_script           판매 스크립트 생성
@@ -89,19 +89,19 @@ def register_all_prompts(mcp: FastMCP) -> int:
             ),
         ]
 
-    # ═══════════════════ B. 고객 상담 ═══════════════════
+    # ═══════════════════ B. 계약자 상담 ═══════════════════
 
     @_counted_prompt(
         name="consultation_guide",
-        description="고객 프로필 기반 맞춤 상담 가이드 — 추천 상품, 보험료, 고지사항 포함",
+        description="계약자 프로필 기반 맞춤 상담 가이드 — 추천 상품, 보험료, 고지사항 포함",
     )
     def consultation_guide(
         age: str, gender: str, interest: str = "종합보장"
     ) -> list[Message]:
         return [
             _user(
-                f"다음 고객에게 맞는 보험 상담 가이드를 작성해주세요.\n\n"
-                f"고객 정보:\n"
+                f"다음 계약자에게 맞는 보험 상담 가이드를 작성해주세요.\n\n"
+                f"계약자 정보:\n"
                 f"- 나이: {age}세\n"
                 f"- 성별: {gender}\n"
                 f"- 관심 분야: {interest}\n\n"
@@ -115,19 +115,19 @@ def register_all_prompts(mcp: FastMCP) -> int:
                 "underwriting_precheck, compliance_required_disclosure"
             ),
             _assistant(
-                f"{age}세 {gender} 고객의 '{interest}' 관심사에 맞는 "
+                f"{age}세 {gender} 계약자의 '{interest}' 관심사에 맞는 "
                 "상담 가이드를 준비하겠습니다."
             ),
         ]
 
     @_counted_prompt(
         name="needs_analysis",
-        description="고객 니즈 파악을 위한 질문 리스트 생성 — 초회 상담용",
+        description="계약자 니즈 파악을 위한 질문 리스트 생성 — 초회 상담용",
     )
     def needs_analysis(customer_type: str = "신규") -> list[Message]:
         return [
             _user(
-                f"'{customer_type}' 고객을 위한 니즈 파악 질문 리스트를 생성해주세요.\n\n"
+                f"'{customer_type}' 계약자를 위한 니즈 파악 질문 리스트를 생성해주세요.\n\n"
                 "다음 영역별로 질문을 3~5개씩 만들어주세요:\n"
                 "1. 기본 정보 (가족구성, 직업, 소득)\n"
                 "2. 보장 니즈 (건강, 사망, 치아, 상해)\n"
@@ -144,7 +144,7 @@ def register_all_prompts(mcp: FastMCP) -> int:
 
     @_counted_prompt(
         name="underwriting_review",
-        description="가입 심사 종합 검토 — 고객 프로필 기반 가입 가능성 분석",
+        description="가입 심사 종합 검토 — 계약자 프로필 기반 가입 가능성 분석",
     )
     def underwriting_review(
         product_code: str, age: str, gender: str,
@@ -152,8 +152,8 @@ def register_all_prompts(mcp: FastMCP) -> int:
     ) -> list[Message]:
         return [
             _user(
-                f"다음 고객의 '{product_code}' 가입 심사를 종합 검토해주세요.\n\n"
-                f"고객 프로필:\n"
+                f"다음 계약자의 '{product_code}' 가입 심사를 종합 검토해주세요.\n\n"
+                f"계약자 프로필:\n"
                 f"- 나이: {age}세 / 성별: {gender}\n"
                 f"- 건강이력: {health_history}\n\n"
                 "검토 항목:\n"
@@ -168,7 +168,7 @@ def register_all_prompts(mcp: FastMCP) -> int:
                 "underwriting_docs_required, underwriting_disclosure_risk_score"
             ),
             _assistant(
-                f"'{product_code}' 상품에 대한 {age}세 {gender} 고객의 "
+                f"'{product_code}' 상품에 대한 {age}세 {gender} 계약자의 "
                 "가입 심사를 검토하겠습니다."
             ),
         ]

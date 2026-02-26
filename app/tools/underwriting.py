@@ -63,7 +63,7 @@ class DisclosureRiskInput(BaseModel):
 
 @tool(args_schema=PrecheckInput)
 def underwriting_precheck(product_code: str, age: int | None = None, gender: str = "", history_summary: str = "") -> str:
-    """나이·병력 기반 인수 사전 적합성 검토. 특정 고객의 건강 이력으로 가입 가능 여부를 판단할 때 사용.
+    """나이·병력 기반 인수 사전 적합성 검토. 계약자의 건강 이력으로 가입 가능 여부를 판단할 때 사용.
     상품 규정상 연령·채널 조건만 확인할 때는 eligibility_by_product_rule 사용."""
     guard = _guard_user_info({"나이": age})
     if guard:

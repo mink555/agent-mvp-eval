@@ -110,7 +110,7 @@ def customer_followup_tasks(case_summary: str) -> str:
     if any(kw in cs for kw in ["불만", "민원", "컴플레인"]):
         tasks.extend([
             {"task": "민원 내용 정리 및 상위 보고", "priority": "높음"},
-            {"task": "고객 연락처/선호 연락 시간 확인", "priority": "중간"},
+            {"task": "계약자 연락처/선호 연락 시간 확인", "priority": "중간"},
             {"task": "해결 방안 마련 후 콜백", "priority": "높음"},
         ])
     if not tasks:
