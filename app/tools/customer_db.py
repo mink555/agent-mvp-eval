@@ -11,11 +11,14 @@ from app.tools.db_setup import get_connection, ensure_db_ready
 from app.tools.data import PRODUCTS, _json
 
 
-_CUSTOMER_SAFE_KEYS = {"customer_id", "name", "age", "gender"}
-_CONTRACT_SAFE_KEYS = {
-    "contract_id", "product_code", "product_name", "insured_name",
-    "status", "start_date", "end_date", "channel",
+_STATUS_MAP = {
+    "active": "유지",
+    "terminated": "해지",
+    "lapsed": "실효",
+    "expired": "만기",
 }
+
+_GENDER_MAP = {"M": "남성", "F": "여성"}
 
 
 # ── Input Schemas ─────────────────────────────────────────────────────────────
@@ -46,13 +49,32 @@ def _rows_to_dicts(rows) -> list[dict[str, Any]]:
 
 
 def _safe_customer(d: dict[str, Any]) -> dict[str, Any]:
-    """개인정보(phone 등)를 제외한 안전한 계약자 정보만 반환."""
-    return {k: v for k, v in d.items() if k in _CUSTOMER_SAFE_KEYS}
+    """개인정보(phone 등)를 제외한 보험 용어 기반 계약자 정보만 반환."""
+    return {
+        "계약자ID": d.get("customer_id", ""),
+        "이름": d.get("name", ""),
+        "나이": d.get("age", ""),
+        "성별": _GENDER_MAP.get(d.get("gender", ""), d.get("gender", "")),
+    }
 
 
 def _safe_contract(d: dict[str, Any]) -> dict[str, Any]:
-    """계약 정보에서 안전한 필드만 반환."""
-    return {k: v for k, v in d.items() if k in _CONTRACT_SAFE_KEYS}
+    """계약 정보를 보험 용어 필드명으로 변환하여 반환."""
+    status = d.get("status", "")
+    result: dict[str, Any] = {
+        "상품명": d.get("product_name", ""),
+        "피보험자": d.get("insured_name", ""),
+        "계약상태": _STATUS_MAP.get(status, status),
+        "계약일": d.get("start_date", ""),
+        "채널": d.get("channel", ""),
+    }
+    if d.get("end_date"):
+        result["만료일"] = d["end_date"]
+    if d.get("terminated_date"):
+        result["해지일"] = d["terminated_date"]
+    if d.get("renewal_date"):
+        result["갱신일"] = d["renewal_date"]
+    return result
 
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
@@ -73,10 +95,17 @@ def customer_contract_lookup(customer_id: str = "", customer_name: str = "") -> 
         return _json({"error": f"계약자를 찾을 수 없습니다. (검색: {customer_id or customer_name})"})
     cust_dict = dict(cust)
     cid = cust_dict["customer_id"]
-    contracts = conn.execute("SELECT * FROM contracts WHERE customer_id = ? ORDER BY start_date DESC", (cid,)).fetchall()
-    contract_list = [_safe_contract(dict(c)) for c in contracts]
-    active_count = sum(1 for c in contract_list if c["status"] == "active")
-    return _json({"customer": _safe_customer(cust_dict), "contracts": contract_list, "total_contracts": len(contract_list), "active_contracts": active_count})
+    raw_contracts = [dict(c) for c in conn.execute(
+        "SELECT * FROM contracts WHERE customer_id = ? ORDER BY start_date DESC", (cid,)
+    ).fetchall()]
+    contract_list = [_safe_contract(c) for c in raw_contracts]
+    active_count = sum(1 for c in raw_contracts if c["status"] == "active")
+    return _json({
+        "계약자": _safe_customer(cust_dict),
+        "계약목록": contract_list,
+        "총계약수": len(contract_list),
+        "유지계약수": active_count,
+    })
 
 
 @tool(args_schema=DuplicateCheckInput)
@@ -120,9 +149,12 @@ def duplicate_enrollment_check(customer_id: str, product_code: str) -> str:
                     blockers.append(f"전제조건 미충족: {rule['rule_description']}")
     eligible = len(blockers) == 0
     return _json({
-        "customer": _safe_customer(dict(cust)), "product": {"code": product_code, "name": product["name"]},
-        "eligible": eligible, "blockers": blockers, "warnings": warnings,
-        "summary": "가입 가능합니다." if eligible else f"가입 불가: {'; '.join(blockers)}",
+        "계약자": _safe_customer(dict(cust)),
+        "상품": {"상품명": product["name"]},
+        "가입가능": eligible,
+        "제한사유": blockers,
+        "참고": warnings,
+        "요약": "가입 가능합니다." if eligible else f"가입 불가: {'; '.join(blockers)}",
     })
 
 
@@ -146,7 +178,7 @@ def customer_search(name: str = "", age_min: int = 0, age_max: int = 200, gender
         params.append(gender.upper())
     query = f"SELECT * FROM customers WHERE {' AND '.join(conditions)}"
     rows = conn.execute(query, params).fetchall()
-    return _json({"customers": [_safe_customer(dict(r)) for r in rows], "total": len(rows)})
+    return _json({"계약자목록": [_safe_customer(dict(r)) for r in rows], "총인원": len(rows)})
 
 
 TOOLS = [
