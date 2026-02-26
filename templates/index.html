@@ -869,36 +869,36 @@
           <div class="example-group">
             <div class="group-label" style="color:var(--danger)">📞 기가입 계약자 암 진단 → 청구 + 추가보장</div>
             <div class="group-items">
-              <button class="example-btn" title="검증: ①계약조회(계약일·만료일·갱신일) ②기가입 암보험→청구 안내(가입불가 아님) ③청구 서류 ④추가보장 추천" onclick="askSequence(['계약자 김민수님 계약 조회해줘', '갑상선암 진단받았는데, 가입한 암보험으로 보험금 청구할 수 있어?', '청구하려면 어떤 서류가 필요해?', '추가로 가입하면 좋을 만한 보장이 있어?'])">김민수 계약조회 → 청구 가능 여부 → 필요 서류 → 추가보장 추천</button>
-              <span class="scenario-turn-hint">턴: 계약조회 → 청구안내 → 서류 → 추가보장</span>
+              <button class="example-btn" title="검증: ①계약 2건 유지(암+치아) ②암 진단→청구 안내(가입불가 아님) ③청구 절차·서류 ④기가입 기반 추가보장" onclick="askSequence(['계약자 김민수님 계약 조회해줘', '갑상선암 진단받았는데 가입 중인 암보험으로 보험금 청구 가능해?', '청구 절차랑 필요한 서류 알려줘', '지금 가입한 상품 외에 추가로 넣으면 좋을 보장 있어?'])">김민수 계약조회 → 청구 가능 여부 → 절차·서류 → 추가보장</button>
+              <span class="scenario-turn-hint">턴: 계약조회 → 청구안내 → 절차·서류 → 추가보장</span>
             </div>
           </div>
           <div class="example-group">
             <div class="group-label" style="color:var(--accent-light)">📞 기가입 계약자 추가 상품 설계</div>
             <div class="group-items">
-              <button class="example-btn" title="검증: ①윤지은 계약 3건(종신·치아·건강) ②치매 중복 없는 상품 추천 ③55세 여성 보험료 비교 ④보유 3건 합산 보험료(맥락 유지)" onclick="askSequence(['계약자 윤지은님 계약 조회해줘', '치매 보장 추가하고 싶은데, 지금 가진 상품이랑 겹치지 않는 치매보험 있어?', '치매간병보험이랑 실속치매보험 차이 뭐야? 55세 여성 기준 보험료도 비교해줘', '지금 유지 중인 세 계약 합쳐서 월 보험료 얼마나 나와?'])">윤지은 계약조회 → 치매 추천 → 비교 → 보유 3건 합산 보험료</button>
+              <button class="example-btn" title="검증: ①윤지은 계약 3건(종신·치아·건강) ②치매 중복 없는 상품 추천 ③55세 여성 보험료 비교 ④보유 3건 합산 보험료(맥락 유지)" onclick="askSequence(['계약자 윤지은님 계약 조회해줘', '치매 보장을 추가하고 싶은데, 지금 가진 상품이랑 안 겹치는 치매보험 있어?', '치매간병보험이랑 실속치매보험 차이가 뭐야? 55세 여성 기준 보험료도 비교해줘', '지금 유지 중인 세 계약 합산 월 보험료는 얼마쯤 돼?'])">윤지은 계약조회 → 치매 추천 → 비교 → 보유 3건 합산 보험료</button>
               <span class="scenario-turn-hint">턴: 계약조회 → 치매추천 → 비교 → 합산(맥락)</span>
             </div>
           </div>
           <div class="example-group">
             <div class="group-label" style="color:var(--info)">📞 해지된 보험 부활 + 대안 상품</div>
             <div class="group-items">
-              <button class="example-btn" title="검증: ①유지/해지·해지일 ②부활 요건 ③60세 여성 대안 ④유지 중 종신보험 보장" onclick="askSequence(['계약자 최수진님 계약 현황 알려줘', '해지한 암보험 부활할 수 있어? 조건이 뭐야?', '부활이 어렵다면 60세 여성이 가입할 수 있는 암보험 있어?', '지금 유지 중인 종신보험 보장 내용 알려줘'])">최수진 계약현황 → 부활 조건 → 대안 암보험 → 종신보험 보장</button>
+              <button class="example-btn" title="검증: ①유지 1건+해지 1건·해지일 표기 ②부활 기한·조건 ③60세 여성 대안 암보험 ④유지 중 종신보험 보장 상세" onclick="askSequence(['계약자 최수진님 계약 현황 알려줘', '해지된 암보험 다시 부활할 수 있어? 조건이 뭐야?', '부활이 어려우면 60세 여성이 새로 가입할 수 있는 암보험 있어?', '유지 중인 간편고지종신보험 보장 내용 자세히 알려줘'])">최수진 계약현황 → 부활 조건 → 대안 암보험 → 종신보험 보장</button>
               <span class="scenario-turn-hint">턴: 계약현황 → 부활요건 → 대안암보험 → 종신 보장</span>
             </div>
           </div>
           <div class="example-group">
             <div class="group-label" style="color:var(--warning)">📞 고위험 직업 + 유병력 복합 심사</div>
             <div class="group-items">
-              <button class="example-btn" title="검증: ①복합 조건(직업·병력) 인식 ②할증 직군 확인 ③첫날부터암보험 보장 상세 ④간편심사 건강보험 추천" onclick="askSequence(['48세 남성인데 택시기사야. 고혈압 약 복용 중이고 암보험 가입하고 싶대', '택시기사면 직업 위험등급 때문에 가입 거절될 수도 있어?', '그러면 첫날부터암보험 가입 조건이랑 보장 내용 자세히 알려줘', '간편심사로 가입 가능한 건강보험도 있어?'])">택시기사+고혈압 → 직업등급 → 암보험 상세 → 간편심사</button>
+              <button class="example-btn" title="검증: ①복합 조건(직업·병력) 인식 ②할증 직군·보험료 영향 ③첫날부터암보험 가입조건·보장 ④간편심사 건강보험 추천" onclick="askSequence(['48세 남성인데 택시기사야. 고혈압 약 복용 중이고 암보험 가입하고 싶대', '택시기사면 직업 위험등급 때문에 보험료가 더 비싸지거나 거절될 수 있어?', '첫날부터암보험은 가입 조건이랑 보장이 어떻게 돼?', '간편심사로 가입할 수 있는 건강보험도 있어?'])">택시기사+고혈압 → 직업등급 → 암보험 상세 → 간편심사</button>
               <span class="scenario-turn-hint">턴: 복합심사 → 직업등급 → 암보험 상세 → 간편심사</span>
             </div>
           </div>
           <div class="example-group">
             <div class="group-label" style="color:var(--success)">📞 시니어 종합 설계 + 보험료 산출</div>
             <div class="group-items">
-              <button class="example-btn" title="검증: ①70세 남성(아버지) 사망·치아 ②연금전환 ③실버치아 가입·보장 ④두 상품 합산(70세 남성)" onclick="askSequence(['70세 아버지인데 사망보장이랑 치아보험 둘 다 알아보고 싶대', '건강해지는종신보험 보장 내용이랑 연금전환 조건 알려줘', '든든한실버치아보험 70세에 가입 가능해? 보장 범위는?', '방금 말한 두 상품 다 가입하면 월 보험료 얼마쯤 나와?'])">시니어 종합설계 → 연금전환 → 가입·보장 → 두 상품 합산 보험료</button>
-              <span class="scenario-turn-hint">턴: 상품추천 → 연금전환 → 가입·보장 → 합산(아버지=남성)</span>
+              <button class="example-btn" title="검증: ①70세 아버지=남성, 사망·치아 추천 ②건강해지는종신 연금전환 ③실버치아 70세 보장범위 ④두 상품 합산(70세 남성)" onclick="askSequence(['70세 아버지인데 사망보장이랑 치아보험 둘 다 알아보고 싶대', '건강해지는종신보험도 70세에 가입 가능해? 보장 내용이랑 연금전환 조건 알려줘', '든든한실버치아보험은 70세에 보장 범위가 어떻게 돼?', '방금 얘기한 두 상품 다 가입하면 월 보험료 합쳐서 얼마쯤 나와?'])">시니어 종합설계 → 연금전환 → 실버치아 보장 → 두 상품 합산 보험료</button>
+              <span class="scenario-turn-hint">턴: 상품추천 → 연금전환 → 실버치아 보장 → 합산(아버지=남성)</span>
             </div>
           </div>
           <div class="example-group">
