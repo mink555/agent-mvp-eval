@@ -290,6 +290,42 @@ def check_empty_response(text: str) -> GuardrailResult:
     return GuardrailResult(passed=True)
 
 
+_TOOL_NAME_PATTERN = re.compile(
+    r'\b('
+    r'product_search|product_get|product_compare|product_latest_version_check|'
+    r'rider_list|rider_search|rider_get|eligibility_by_product_rule|'
+    r'product_faq_lookup|sales_channel_availability|'
+    r'premium_estimate|premium_compare|plan_options|amount_suggest|'
+    r'renewal_premium_projection|affordability_check|payment_cycle_options|'
+    r'surrender_value_explain|'
+    r'coverage_summary|coverage_detail|benefit_amount_lookup|benefit_limit_rules|'
+    r'event_eligibility_check|diagnosis_definition_lookup|icd_mapping_lookup|'
+    r'multi_benefit_conflict_rule|rider_bundle_recommend|'
+    r'underwriting_precheck|underwriting_questions_generator|'
+    r'underwriting_knockout_rules|underwriting_docs_required|'
+    r'underwriting_waiting_periods|underwriting_exclusions|'
+    r'underwriting_limitations|underwriting_reinstatement_rule|'
+    r'underwriting_renewal_eligibility|underwriting_renewal_premium_notice|'
+    r'underwriting_high_risk_job_check|underwriting_disclosure_risk_score|'
+    r'compliance_required_disclosure|compliance_phrase_generator|'
+    r'compliance_misleading_check|comparison_disclaimer_generator|'
+    r'recording_notice_script|privacy_masking|'
+    r'claim_guide|claim_required_forms|contract_manage|customer_followup_tasks|'
+    r'customer_contract_lookup|duplicate_enrollment_check|customer_search|'
+    r'rag_terms_query_engine|rag_product_info_query_engine'
+    r')\b'
+)
+
+
+def sanitize_tool_names(text: str) -> str:
+    """응답에서 내부 도구명(snake_case 함수명)을 제거한다."""
+    return _TOOL_NAME_PATTERN.sub('', text).replace('  ', ' ').strip()
+
+
+def check_empty_response_post(text: str) -> GuardrailResult:
+    return GuardrailResult(passed=True)
+
+
 OUTPUT_CHECKS = [check_pii_leak, check_forbidden_output, check_empty_response]
 """출력 체크 리스트. 새 체크 추가 시 여기에 함수를 append."""
 
@@ -447,11 +483,14 @@ def output_guardrail(state: AgentState) -> dict:
                     }],
                 }
 
+    cleaned = sanitize_tool_names(text)
     tools_used = extract_tools_used(state["messages"])
     disclaimer = _select_disclaimer(tools_used)
 
-    if disclaimer and disclaimer not in text:
-        amended = f"{text.rstrip()}\n\n※ {disclaimer}"
+    text_changed = cleaned != text
+
+    if disclaimer and disclaimer not in cleaned:
+        amended = f"{cleaned.rstrip()}\n\n※ {disclaimer}"
         return {
             "messages": [AIMessage(content=amended, id=last_msg.id)],
             "guardrail_action": "pass",
@@ -459,6 +498,19 @@ def output_guardrail(state: AgentState) -> dict:
             "trace": [{
                 "node": "output_guardrail", "action": "pass",
                 "disclaimer_appended": True,
+                "tool_names_removed": text_changed,
+                "duration_ms": round((time.time() - ts) * 1000),
+            }],
+        }
+
+    if text_changed:
+        return {
+            "messages": [AIMessage(content=cleaned, id=last_msg.id)],
+            "guardrail_action": "pass",
+            "conversation_started": True,
+            "trace": [{
+                "node": "output_guardrail", "action": "pass",
+                "tool_names_removed": True,
                 "duration_ms": round((time.time() - ts) * 1000),
             }],
         }
