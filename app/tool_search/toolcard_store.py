@@ -104,11 +104,6 @@ class ToolCardStore:
             entry = self._store.get(name)
             return copy.deepcopy(entry.get("history", [])) if entry else []
 
-    def get_effective_card(self, name: str) -> ToolCard | None:
-        """실제 적용 중인 카드: published override > 코드 정의."""
-        pub = self.get_published(name)
-        return pub if pub else CODE_REGISTRY.get(name)
-
     def list_overrides(self) -> list[str]:
         """Override가 있는 도구 이름 목록."""
         with self._lock:

@@ -1568,7 +1568,8 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
 });
 
 refreshAll();
-setInterval(fetchHealth, 10000);
+const _healthInterval = setInterval(fetchHealth, 10000);
+window.addEventListener('beforeunload', () => clearInterval(_healthInterval));
 </script>
 </body>
 </html>

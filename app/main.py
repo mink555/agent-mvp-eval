@@ -1,23 +1,4 @@
-"""FastAPI — LangGraph 5역할 구조 기반 보험 챗봇 API.
-
-State(상태) / Reducer(누적) / Node(행동) / Edge(분기) / IO Adapter(래퍼)
-
-Endpoints:
-  POST   /api/chat                        — 동기 응답
-  POST   /api/chat/stream                 — SSE 스트리밍
-  GET    /api/health                      — 헬스체크
-  GET    /api/tools                       — 도구 카탈로그
-  GET    /api/products                    — 상품 카탈로그
-  GET    /api/admin/tools                 — Admin 도구 상세 (ToolCard 포함)
-  DELETE /api/tools/{tool_name}           — 도구 런타임 해제
-  POST   /api/tools/reload-module/{mod}   — 모듈 핫리로드
-  GET    /admin/tools                     — Tool Admin UI
-  POST   /api/admin/eval/search           — 단일 쿼리 검색 테스트
-  POST   /api/admin/eval/bulk-search      — 멀티 쿼리 벌크 검색
-  POST   /api/admin/eval/generate-queries — LLM 테스트 질문 생성
-  POST   /api/admin/eval/batch/{name}     — ToolCard 배치 Recall 평가
-  POST   /api/admin/eval/judge            — LLM-as-Judge 실패 분석
-"""
+"""FastAPI — LangGraph 5노드 파이프라인 기반 보험 챗봇 API."""
 
 from __future__ import annotations
 
@@ -462,11 +443,11 @@ async def reload_module_tools(module_name: str):
 
 @app.get("/api/debug/state/{thread_id}")
 async def debug_state(thread_id: str):
-    """LangGraph 체크포인터에서 특정 thread의 현재 상태를 조회.
+    """LangGraph 체크포인터에서 특정 thread의 현재 상태를 조회."""
+    import os
 
-    LangGraph가 기본 제공하는 get_state() / get_state_history() 를 활용한다.
-    프로덕션에서는 이 엔드포인트를 비활성화하거나 인증을 추가해야 한다.
-    """
+    if os.getenv("ENV", "development").lower() == "production":
+        raise HTTPException(status_code=404)
     graph = get_graph()
     config = {"configurable": {"thread_id": thread_id}}
     try:

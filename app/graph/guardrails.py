@@ -197,8 +197,8 @@ def check_domain_relevance(text: str) -> GuardrailResult:
 
     판정 기준 (e5-large query/passage 프리픽스 기준):
       1. 길이 < 5자  → 무조건 통과 (후속 단답 "네", "아니" 등)
-      2. max_in >= _DOMAIN_IN_THRESHOLD(0.85) → 통과 (명확한 in-domain)
-      3. max_out - max_in >= _DOMAIN_MARGIN_THRESHOLD(0.05) → 차단 (out이 확실히 우세)
+      2. max_in >= _DOMAIN_IN_THRESHOLD(0.87) → 통과 (명확한 in-domain)
+      3. max_out - max_in >= _DOMAIN_MARGIN_THRESHOLD(0.03) → 차단 (out이 확실히 우세)
       4. 그 외 모호한 경우 → 통과 (LLM 시스템 프롬프트가 도메인 외 응답 처리)
 
     임베딩 실패 시 안전하게 통과 처리 (서비스 중단 방지 우선).
@@ -324,10 +324,6 @@ def sanitize_tool_names(text: str) -> str:
     text = _TOOL_NAME_PATTERN.sub('', text)
     text = _PRODUCT_CODE_PATTERN.sub('', text)
     return re.sub(r'  +', ' ', text).strip()
-
-
-def check_empty_response_post(text: str) -> GuardrailResult:
-    return GuardrailResult(passed=True)
 
 
 OUTPUT_CHECKS = [check_pii_leak, check_forbidden_output, check_empty_response]
