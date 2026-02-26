@@ -129,56 +129,58 @@
 
     .msg.bot.rendered {
       white-space: normal;
-      line-height: 1.8;
+      line-height: 1.75;
+      font-size: 13.5px;
     }
 
     .msg.bot.rendered p {
-      margin: 0 0 12px;
+      margin: 0 0 10px;
     }
     .msg.bot.rendered p:last-child { margin-bottom: 0; }
 
+    /* ── 리스트 기본: 네이티브 넘버링 사용 ── */
     .msg.bot.rendered ul, .msg.bot.rendered ol {
-      margin: 6px 0 14px 8px;
-      padding: 0;
-      list-style: none;
+      margin: 6px 0 10px 0;
+      padding-left: 22px;
     }
-    .msg.bot.rendered ol {
-      counter-reset: li;
-    }
+    .msg.bot.rendered ul { list-style-type: disc; }
+    .msg.bot.rendered ol { list-style-type: decimal; }
+
     .msg.bot.rendered li {
-      margin-bottom: 6px;
-      padding: 4px 0 4px 20px;
-      position: relative;
-      line-height: 1.7;
+      margin-bottom: 5px;
+      padding: 1px 0;
+      line-height: 1.65;
     }
-    .msg.bot.rendered ul > li::before {
-      content: '';
-      position: absolute;
-      left: 4px;
-      top: 12px;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--text-dim);
+    .msg.bot.rendered li::marker {
+      color: var(--text-dim);
+      font-size: 13px;
     }
-    .msg.bot.rendered ol > li {
-      counter-increment: li;
-    }
-    .msg.bot.rendered ol > li::before {
-      content: counter(li) ".";
-      position: absolute;
-      left: 0;
-      top: 4px;
+    .msg.bot.rendered ol > li::marker {
       color: var(--text);
       font-weight: 600;
-      font-size: 13px;
     }
     .msg.bot.rendered li:last-child { margin-bottom: 0; }
 
+    /* ── 중첩 리스트: 레벨별 스타일 구분 ── */
+    .msg.bot.rendered li > ul, .msg.bot.rendered li > ol {
+      margin: 3px 0 3px 0;
+      padding-left: 18px;
+    }
+    .msg.bot.rendered li > ul { list-style-type: '– '; }
+    .msg.bot.rendered li > ul > li > ul { list-style-type: '· '; }
+
+    .msg.bot.rendered li > ul > li,
+    .msg.bot.rendered li > ol > li {
+      margin-bottom: 2px;
+      font-size: 12.5px;
+      color: var(--text-dim);
+    }
+
+    /* ── 헤딩 ── */
     .msg.bot.rendered h1,.msg.bot.rendered h2,.msg.bot.rendered h3 {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
-      margin: 16px 0 6px;
+      margin: 14px 0 6px;
       color: var(--text);
       letter-spacing: 0.02em;
     }
@@ -186,24 +188,25 @@
     .msg.bot.rendered h2:first-child,
     .msg.bot.rendered h3:first-child { margin-top: 0; }
 
+    /* ── 강조 ── */
     .msg.bot.rendered strong {
       color: #fff;
       font-weight: 700;
-      letter-spacing: 0.01em;
     }
 
+    /* ── 테이블 ── */
     .msg.bot.rendered table {
       width: 100%;
       border-collapse: separate;
       border-spacing: 0;
-      margin: 12px 0;
-      font-size: 13px;
+      margin: 10px 0;
+      font-size: 12.5px;
       border-radius: 8px;
       overflow: hidden;
       border: 1px solid var(--border);
     }
     .msg.bot.rendered th, .msg.bot.rendered td {
-      padding: 8px 12px;
+      padding: 7px 10px;
       border-bottom: 1px solid var(--border);
       text-align: left;
     }
@@ -212,7 +215,6 @@
       font-weight: 700;
       color: var(--text);
       font-size: 12px;
-      text-transform: none;
       letter-spacing: 0.02em;
     }
     .msg.bot.rendered tr:last-child td { border-bottom: none; }
@@ -221,20 +223,20 @@
     .msg.bot.rendered hr {
       border: none;
       border-top: 1px solid var(--border);
-      margin: 14px 0;
+      margin: 12px 0;
     }
 
     .msg.bot.rendered code {
       background: var(--surface3);
       padding: 2px 6px;
       border-radius: 4px;
-      font-size: 13px;
+      font-size: 12.5px;
       font-family: 'SF Mono', Menlo, monospace;
     }
 
     .msg.bot.rendered .disclaimer-note {
-      margin-top: 14px;
-      padding: 10px 14px;
+      margin-top: 12px;
+      padding: 8px 12px;
       background: rgba(253, 203, 110, 0.08);
       border-left: 3px solid var(--warning);
       border-radius: 0 6px 6px 0;
